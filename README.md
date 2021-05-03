@@ -1,0 +1,41 @@
+# Multipass Workflows
+This repository contains the workflow definitions for [`multipass launch`](https://multipass.run):
+
+```plain
+$ multipass find
+Image                       Aliases           Version          Description
+# ...
+minikube                                      latest           minikube is local Kubernetes
+
+$ multipass launch minikube
+Launched: minikube
+
+$ multipass exec minikube -- minikube status
+minikube
+type: Control Plane
+host: Running
+kubelet: Running
+apiserver: Running
+kubeconfig: Configured
+```
+
+## Schema
+The workflows are defined in YAML of the following format (required fields marked with `*`):
+```yaml
+# v1/<name>.yaml
+
+description: <string>      # * a short description of the workflow ("tagline")
+version: <string>          # * a version string
+
+instances:
+  <name>:                  # * equal to the workflow name
+    image: <base image>    # a valid image alias, see `multipass find` for available values
+    limits:
+      min-cpu: <int>       # the minimum number of CPUs this workflow can work with
+      min-mem: <int>       # the minimum amount of memory
+      min-disk: <string>   # and the minimum disk size
+    timeout: <int>         # maximum time for the instance to launch, and separately for cloud-init to complete
+    cloud-init:
+      vendor-data: |       # cloud-init vendor data
+        <string>
+```
