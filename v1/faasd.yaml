@@ -1,0 +1,50 @@
+description: A portable FaaS framework
+version: 0.11.4
+
+instances:
+  faasd:
+    limits:
+      min-cpu: 2
+      min-mem: 2G
+      min-disk: 20G
+    cloud-init:
+      vendor-data: |
+        package_update: true
+
+        packages:
+         - runc
+         - git
+        
+        runcmd:
+        # install containerd and its service
+        - curl -sLSf https://github.com/containerd/containerd/releases/download/v1.4.4/containerd-1.4.4-linux-amd64.tar.gz | tar -xvz -C /usr/local/bin/ --strip-components=1
+        - curl -sLSf https://raw.githubusercontent.com/containerd/containerd/v1.4.4/containerd.service | tee /etc/systemd/system/containerd.service
+        - systemctl daemon-reload
+        - systemctl start containerd
+        - systemctl enable containerd
+
+        # enable IP forwarding
+        - /sbin/sysctl -w net.ipv4.conf.all.forwarding=1
+
+        # install CNI plugins
+        - mkdir -p /opt/cni/bin
+        - curl -sSL https://github.com/containernetworking/plugins/releases/download/v0.9.1/cni-plugins-linux-amd64-v0.9.1.tgz | tar -xvz -C /opt/cni/bin
+
+        # install faasd
+        - mkdir -p /go/src/github.com/openfaas/
+        - cd /go/src/github.com/openfaas/ && git clone --depth 1 --branch 0.11.4 https://github.com/openfaas/faasd
+        - curl -fSLs "https://github.com/openfaas/faasd/releases/download/0.11.4/faasd" --output "/usr/local/bin/faasd" && chmod a+x "/usr/local/bin/faasd"
+        - cd /go/src/github.com/openfaas/faasd/ && /usr/local/bin/faasd install
+
+        # dump logs for debugging purposes
+        - systemctl status -l containerd --no-pager
+        - journalctl -u faasd-provider --no-pager
+        - systemctl status -l faasd-provider --no-pager
+        - systemctl status -l faasd --no-pager
+
+        # install faas-cli
+        - curl -sSLf https://cli.openfaas.com | sh
+        - sleep 60 && journalctl -u faasd --no-pager
+
+        # authorize `ubuntu`
+        - cat /var/lib/faasd/secrets/basic-auth-password | su - ubuntu -c "/usr/local/bin/faas-cli login --password-stdin"
