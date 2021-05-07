@@ -1,0 +1,15 @@
+description: Android in a Box
+version: stable
+
+instances:
+  anbox-cloud:
+    limits:
+      min-cpu: 1
+      min-mem: 2G
+    cloud-init:
+      vendor-data: |
+        runcmd:
+        - apt autoremove -y
+        - snap install --classic juju
+        - snap install amc
+        - snap install --classic anbox-cloud-appliance
