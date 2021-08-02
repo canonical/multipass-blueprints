@@ -1,0 +1,21 @@
+description: Anbox Cloud Appliance
+version: latest
+
+instances:
+  anbox-cloud-appliance:
+    limits:
+      min-cpu: 4
+      min-mem: 4G
+      min-disk: 50G
+    timeout: 900
+    cloud-init:
+      vendor-data: |
+        runcmd:
+        - apt update
+        - DEBIAN_FRONTEND=noninteractive apt purge -y linux-kvm linux-image-kvm linux-headers-kvm linux-image-* linux-headers-* linux-modules-*
+        - apt install -y linux-image-generic linux-headers-generic
+        - apt autoremove -y
+        - snap install --classic --channel=2.8/stable juju
+        - snap install amc
+        - snap install --classic anbox-cloud-appliance
+        - reboot
