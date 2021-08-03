@@ -12,7 +12,7 @@ instances:
       vendor-data: |
         runcmd:
         - apt update
-        - DEBIAN_FRONTEND=noninteractive apt purge -y linux-kvm linux-image-kvm linux-headers-kvm linux-image-* linux-headers-* linux-modules-*
+        - DEBIAN_FRONTEND=noninteractive apt purge -y linux-image-* linux-headers-* linux-modules-*
         - apt install -y linux-image-generic linux-headers-generic
         - apt autoremove -y
         - snap install --classic --channel=2.8/stable juju
