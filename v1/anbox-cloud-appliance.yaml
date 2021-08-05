@@ -10,12 +10,23 @@ instances:
     timeout: 900
     cloud-init:
       vendor-data: |
+        snap:
+          commands:
+          - snap install --classic --channel=2.8/stable juju
+          - snap install amc
+          - snap install --classic anbox-cloud-appliance
+        
         runcmd:
-        - apt update
-        - DEBIAN_FRONTEND=noninteractive apt purge -y linux-image-* linux-headers-* linux-modules-*
-        - apt install -y linux-image-generic linux-headers-generic
-        - apt autoremove -y
-        - snap install --classic --channel=2.8/stable juju
-        - snap install amc
-        - snap install --classic anbox-cloud-appliance
-        - reboot
+        - |
+          # We're done if ashmem and binder are available
+          modprobe ashmem_linux && modprobe binder_linux && exit 0
+        
+          # else
+          apt-get update
+          env DEBIAN_FRONTEND=noninteractive apt purge -y linux-image-* linux-headers-* linux-modules-*
+          apt-get install -y linux-image-generic linux-headers-generic
+          apt-get autoremove -y
+        
+        power_state:
+          mode: reboot
+          condition: "! ( modprobe ashmem_linux && modprobe binder_linux )"
