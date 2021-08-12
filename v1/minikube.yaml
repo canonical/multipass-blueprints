@@ -14,7 +14,7 @@ instances:
           sources:
             docker:
               source: |
-                deb [arch=amd64] https://download.docker.com/linux/ubuntu $RELEASE stable
+                deb https://download.docker.com/linux/ubuntu $RELEASE stable
               key: |
                 -----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -80,6 +80,7 @@ instances:
                 -----END PGP PUBLIC KEY BLOCK-----
 
         packages:
+        - dpkg-dev
         - docker-ce
         - docker-ce-cli
         - containerd.io
@@ -90,6 +91,6 @@ instances:
 
         runcmd:
         - adduser ubuntu docker
-        - wget https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
-        - apt-get install --yes --no-install-recommends -o Debug::pkgProblemResolver=yes ./minikube_latest_amd64.deb
+        - wget https://storage.googleapis.com/minikube/releases/latest/minikube_latest_$( dpkg-architecture -q DEB_HOST_ARCH ).deb
+        - apt-get install --yes --no-install-recommends -o Debug::pkgProblemResolver=yes ./minikube_latest_$( dpkg-architecture -q DEB_HOST_ARCH ).deb
         - sudo -u ubuntu minikube start --driver=docker
