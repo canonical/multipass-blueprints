@@ -1,8 +1,7 @@
 # Multipass Workflows
-This repository contains multipass workflow definitions.
-Multipass workflows augment the offerings already available from the
+This repository contains multipass workflow definitions. They augment the offerings already available from the
 [Ubuntu Cloud Images](http://cloud-images.ubuntu.com/). You can list the available images with
-[`multipass find`](https://multipass.run):
+[`multipass find`](https://multipass.run/docs/find-command) and run them with [`multipass launch`](https://multipass.run/docs/launch-command):
 
 ```plain
 $ multipass find
@@ -42,6 +41,3 @@ instances:
       vendor-data: |       # cloud-init vendor data
         <string>
 ```
-
-## Build multipass-compatible images
-Images can be [built with Packer](https://discourse.ubuntu.com/t/building-multipass-images-with-packer/12361).
