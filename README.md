@@ -45,3 +45,27 @@ instances:
       vendor-data: |       # cloud-init vendor data
         <string>
 ```
+
+## Testing
+The `multipass find` command looks for workflows in a URL provided by an
+environment variable, `MULTIPASS_WORKFLOWS_URL`. To locally test your workflows
+you would need to override the systemd service with the following setting:
+
+```conf
+[Service]
+Environment="MULTIPASS_WORKFLOWS_URL=https://github.com/USERNAME/multipass-workflows/archive/refs/heads/BRANCH_NAME.zip"
+```
+
+This can be done by manually editing
+`/etc/systemd/system/snap.multipass.multipassd.service.d/override.conf`, or by
+using the `edit` utility:
+
+```shell
+sudo systemctl edit snap.multipass.multipassd.service
+```
+
+followed by service restart:
+
+```shell
+sudo systemctl restart snap.multipass.multipassd.service
+```
