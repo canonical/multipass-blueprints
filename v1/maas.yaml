@@ -1,87 +1,96 @@
 description: A local MAAS server with LXD VM host built in.
 version: latest
 
-ssh_pwauth: yes
-chpasswd:
-  list: |
-    multipass:multipass
-  expire: False
-write_files:
- - content: |
-    config:
-      core.https_address: '[::]:8443'
-      core.trust_password: password
-    networks:
-    - config:
-        ipv4.address: 10.10.10.1/24
-        ipv6.address: none
-      description: ""
-      name: lxdbr0
-      type: ""
-      project: default
-    storage_pools:
-    - config:
-        size: 16GB
-      description: ""
-      name: default
-      driver: zfs
-    profiles:
-    - config: {}
-      description: ""
-      devices:
-        eth0:
-          name: eth0
-          network: lxdbr0
-          type: nic
-        root:
-          path: /
-          pool: default
-          type: disk
-      name: default
-    projects: []
-    cluster: null
-   path: /tmp/lxd.cfg
+instances:
+  name: maas
+  limits:
+    min-cpu: 4
+    min-mem: 8G
+    min-disk: 30G
 
-runcmd:
- - apt-get update
- - apt-get install qemu-kvm jq  --yes
- - snap install maas
- - snap install lxd
- - snap install maas-test-db
- - echo "enabling IPv4 forwarding and NAT for VMs"
- - export IP_ADDRESS=$(ip -4 addr show ens4 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
- - sysctl -w net.ipv4.ip_forward=1
- - iptables -t nat -A POSTROUTING -o ens4 -j SNAT --to $IP_ADDRESS
- - echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
- - echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections
- - apt-get install iptables-persistent -y
- - cat /tmp/lxd.cfg | lxd init --preseed
- - echo "sleeping for 20 seconds"
- - sleep 20
- - echo "Initing maas"
- - maas init region+rack --database-uri maas-test-db:/// --maas-url http://127.0.0.1:5240/MAAS
- - echo "Init done"
- - maas createadmin --username admin --password admin --email admin
- - export APIKEY=$(maas apikey --username admin)
- - maas login admin 'http://localhost:5240/MAAS/' $APIKEY
- - echo "sleeping for 15 seconds"
- - echo "setting subnet"
- - export SUBNET=10.10.10.0/24
- - echo "setting fabric ID based on subnet"
- - export FABRIC_ID=$(maas admin subnet read "$SUBNET" | jq -r ".vlan.fabric_id")
- - echo "setting vlan_tag based on subnet"
- - export VLAN_TAG=$(maas admin subnet read "$SUBNET" | jq -r ".vlan.vid")
- - echo "setting primary rack"
- - export PRIMARY_RACK=$(maas admin rack-controllers read | jq -r ".[] | .system_id")
- - echo "updating subnet gateway ID"
- - maas admin subnet update $SUBNET gateway_ip=10.10.10.1
- - echo "setting ip range"
- - maas admin ipranges create type=dynamic start_ip=10.10.10.200 end_ip=10.10.10.254
- - echo "turning on dhcp"
- - maas admin vlan update $FABRIC_ID $VLAN_TAG dhcp_on=True primary_rack=$PRIMARY_RACK
- - echo "Setting up LXD VM Host"
- - maas admin vm-hosts create  password=password  type=lxd power_address=https://127.0.0.1:8443 project=maas
- - echo "waiting for sync"
- - export status="downloading"
- - while [ "$status" != "synced" ]; do export status=$(maas admin rack-controller list-boot-images $PRIMARY_RACK | jq -r .status); sleep 1; done
-#todo generate ssh key and add it to maas 
+  ssh_pwauth: yes
+  chpasswd:
+    list: |
+      multipass:multipass
+    expire: False
+  write_files:
+  - content: |
+      config:
+        core.https_address: '[::]:8443'
+        core.trust_password: password
+      networks:
+      - config:
+          ipv4.address: 10.10.10.1/24
+          ipv6.address: none
+        description: ""
+        name: lxdbr0
+        type: ""
+        project: default
+      storage_pools:
+      - config:
+          size: 16GB
+        description: ""
+        name: default
+        driver: zfs
+      profiles:
+      - config: {}
+        description: ""
+        devices:
+          eth0:
+            name: eth0
+            network: lxdbr0
+            type: nic
+          root:
+            path: /
+            pool: default
+            type: disk
+        name: default
+      projects: []
+      cluster: null
+    path: /tmp/lxd.cfg
+  
+  packages:
+    jq
+  snap:
+    commands:
+      - snap install maas
+      - snap install lxd
+      - snap install maas-test-db
+  runcmd:
+  - echo "Enabling IPv4 forwarding and NAT for VMs bridge"
+  - export IP_ADDRESS=$(ip -4 addr show ens4 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+  - sysctl -w net.ipv4.ip_forward=1
+  - iptables -t nat -A POSTROUTING -o ens4 -j SNAT --to $IP_ADDRESS
+  - echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
+  - echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections
+  - apt-get install iptables-persistent -y
+  - cat /tmp/lxd.cfg | lxd init --preseed
+  - echo "Sleeping for 20 seconds"
+  - sleep 20
+  - echo "Initing maas"
+  - maas init region+rack --database-uri maas-test-db:/// --maas-url http://127.0.0.1:5240/MAAS
+  - echo "Init done"
+  - maas createadmin --username admin --password admin --email admin
+  - export APIKEY=$(maas apikey --username admin)
+  - maas login admin 'http://localhost:5240/MAAS/' $APIKEY
+  - echo "Sleeping for 15 seconds"
+  - echo "Setting subnet"
+  - export SUBNET=10.10.10.0/24
+  - echo "Setting fabric ID based on subnet"
+  - export FABRIC_ID=$(maas admin subnet read "$SUBNET" | jq -r ".vlan.fabric_id")
+  - echo "Setting vlan_tag based on subnet"
+  - export VLAN_TAG=$(maas admin subnet read "$SUBNET" | jq -r ".vlan.vid")
+  - echo "Setting primary rack"
+  - export PRIMARY_RACK=$(maas admin rack-controllers read | jq -r ".[] | .system_id")
+  - echo "Updating subnet gateway ID"
+  - maas admin subnet update $SUBNET gateway_ip=10.10.10.1
+  - echo "Setting ip range"
+  - maas admin ipranges create type=dynamic start_ip=10.10.10.200 end_ip=10.10.10.254
+  - echo "Turning on dhcp"
+  - maas admin vlan update $FABRIC_ID $VLAN_TAG dhcp_on=True primary_rack=$PRIMARY_RACK
+  - echo "Setting up LXD VM Host"
+  - maas admin vm-hosts create  password=password  type=lxd power_address=https://127.0.0.1:8443 project=maas
+  - echo "Waiting for sync"
+  - export status="downloading"
+  - while [ "$status" != "synced" ]; do export status=$(maas admin rack-controller list-boot-images $PRIMARY_RACK | jq -r .status); sleep 1; done
+  #todo generate ssh key and add it to maas 
