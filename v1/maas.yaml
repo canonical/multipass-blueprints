@@ -7,6 +7,7 @@ instances:
       min-cpu: 4
       min-mem: 8G
       min-disk: 30G
+    timeout: 900
     cloud-init:
       vendor-data: |
         write_files:
