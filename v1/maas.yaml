@@ -73,8 +73,6 @@ instances:
         - export APIKEY=$(maas apikey --username admin)
         # MAAS admin login
         - maas login admin 'http://localhost:5240/MAAS/' $APIKEY
-        # Sleep while waiting for MAAS to settle after initialisation
-        - echo "Sleeping for 15 seconds"
         # Configure MAAS networking (set gateways, vlans, DHCP on etc)
         - export SUBNET=10.10.10.0/24
         - export FABRIC_ID=$(maas admin subnet read "$SUBNET" | jq -r ".vlan.fabric_id")
