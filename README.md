@@ -6,6 +6,7 @@ $ multipass find
 Image                       Aliases           Version          Description
 # ...
 minikube                                      latest           minikube is local Kubernetes
+faasd                                         latest           A lightweight & portable faas engine
 
 $ multipass launch minikube
 Launched: minikube
