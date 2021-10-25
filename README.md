@@ -29,6 +29,10 @@ The workflows are defined in YAML of the following format (required fields marke
 description: <string>      # * a short description of the workflow ("tagline")
 version: <string>          # * a version string
 
+runs-on:                   # a list of architectures this workflow can run on
+- arm64                    #   see https://doc.qt.io/qt-5/qsysinfo.html#currentCpuArchitecture
+- x86_64                   #   for a list of valid values
+
 instances:
   <name>:                  # * equal to the workflow name
     image: <base image>    # a valid image alias, see `multipass find` for available values
