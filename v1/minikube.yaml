@@ -1,6 +1,13 @@
 description: minikube is local Kubernetes
 version: latest
 
+runs-on:
+- arm
+- arm64
+- power64
+- s390x
+- x86_64
+
 instances:
   minikube:
     limits:

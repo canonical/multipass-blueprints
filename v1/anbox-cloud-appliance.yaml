@@ -1,6 +1,10 @@
 description: Anbox Cloud Appliance
 version: latest
 
+runs-on:
+- arm64
+- x86_64
+
 instances:
   anbox-cloud-appliance:
     limits:
