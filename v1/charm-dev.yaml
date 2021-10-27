@@ -67,8 +67,15 @@ instances:
           adduser ubuntu microk8s
           sudo -u ubuntu microk8s status --wait-ready
           sudo -u ubuntu microk8s.enable dns storage
-          # blindly wait for storage to become available
-          sleep 180
+          # wait for storage to become available
+          while true; do
+            if [[ "$(microk8s.status -a storage)" == "enabled" ]]; then
+                break
+            else
+                echo "Waiting for storage to become available..."
+                sleep 5
+            fi
+          done
           sudo -u ubuntu juju bootstrap microk8s charm-dev
           sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
 
