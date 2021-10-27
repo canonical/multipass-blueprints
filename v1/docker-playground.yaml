@@ -18,19 +18,19 @@ instances:
         runcmd:
         - |
           # disable swap
-          sudo sysctl vm.swappiness=0
-          echo "vm.swappiness = 0" | sudo tee -a /etc/sysctl.conf
+          sysctl vm.swappiness=0
+          echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
 
         - |
           # disable unnecessary services
-          sudo systemctl disable man-db.timer man-db.service --now
-          sudo systemctl disable apport.service apport-autoreport.service  --now
-          sudo systemctl disable apt-daily.service apt-daily.timer --now
-          sudo systemctl disable apt-daily-upgrade.service apt-daily-upgrade.timer --now
-          sudo systemctl disable unattended-upgrades.service --now
-          sudo systemctl disable motd-news.service motd-news.timer --now
-          sudo systemctl disable bluetooth.target --now
-          sudo systemctl disable ua-messaging.service ua-messaging.timer --now
+          systemctl disable man-db.timer man-db.service --now
+          systemctl disable apport.service apport-autoreport.service  --now
+          systemctl disable apt-daily.service apt-daily.timer --now
+          systemctl disable apt-daily-upgrade.service apt-daily-upgrade.timer --now
+          systemctl disable unattended-upgrades.service --now
+          systemctl disable motd-news.service motd-news.timer --now
+          systemctl disable bluetooth.target --now
+          systemctl disable ua-messaging.service ua-messaging.timer --now
 
         - |
           # various tools via apt
