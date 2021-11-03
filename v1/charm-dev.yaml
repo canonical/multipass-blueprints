@@ -66,10 +66,11 @@ instances:
           # setup microk8s and bootstrap
           adduser ubuntu microk8s
           microk8s status --wait-ready
-          microk8s.enable storage dns
+          microk8s.enable storage dns ingress
           # wait for storage, dns to become available
           sh -c "until microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w; do sleep 5; done"
           sh -c "until microk8s.kubectl rollout status deployments/coredns -n kube-system -w; do sleep 5; done"
+          sh -c "until microk8s.kubectl rollout status daemonsets/nginx-ingress-microk8s-controller -n ingress -w; do sleep 5; done"
           sudo -u ubuntu juju bootstrap microk8s charm-dev
           sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
 
