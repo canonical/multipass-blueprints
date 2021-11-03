@@ -68,8 +68,8 @@ instances:
           microk8s status --wait-ready
           microk8s.enable storage dns
           # wait for storage, dns to become available
-          sh -c "until microk8s.kubectl wait --for=condition=ready pod -l k8s-app=hostpath-provisioner -n kube-system --timeout=180s; do sleep 5; done"
-          sh -c "until microk8s.kubectl wait --for=condition=ready pod -l k8s-app=kube-dns -n kube-system --timeout=180s; do sleep 5; done"
+          sh -c "until microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w; do sleep 5; done"
+          sh -c "until microk8s.kubectl rollout status deployments/coredns -n kube-system -w; do sleep 5; done"
           sudo -u ubuntu juju bootstrap microk8s charm-dev
           sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
 
