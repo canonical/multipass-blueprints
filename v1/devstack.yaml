@@ -1,0 +1,51 @@
+# Refer to https://docs.openstack.org/devstack/latest/
+#
+# It will work better with nested virtualization and a lot of memory.
+# This is experimental, it worked once on my machine with the libvirt driver.
+# Outcome can be checked in /var/log/cloud-init-output.log
+#
+# openstack() { multipass exec devstack -- bash -c "source /opt/stack/devstack/userrc_early && openstack $*"; }
+#
+# openstack security group create mine
+# openstack security group rule create mine --ingress --remote-ip 0.0.0.0/0 --protocol icmp
+# openstack security group rule create mine --ingress --remote-ip 0.0.0.0/0 --protocol tcp --dst-port 22
+#
+# openstack server create --flavor m1.tiny --image cirros-0.5.2-x86_64-disk --network private --security-group mine fr1
+# openstack floating ip create --port `openstack port list --server fr1 -f value -c ID` public
+# 
+# multipass exec devstack -- ssh cirros@172.24.4.129
+#
+# Some services were disabled (horizon, cinder) to try to keep the build under 30minutes
+description: devstack is all-in-one OpenStack (experimental)
+version: latest
+
+runs-on:
+- x86_64
+
+# capabilities:
+# - host-passthrough
+#
+# per https://github.com/canonical/multipass/blob/9afd6ee23f15cc0edf3dc82bad9d0e974aef3be5/src/platform/backends/libvirt/libvirt_virtual_machine.cpp
+# this is the case already when using libvirt driver
+
+instances:
+  devstack:
+    limits:
+      min-cpu: 3
+      min-mem: 6G
+      min-disk: 30G
+    timeout: 1800
+    cloud-init:
+      vendor-data: |
+        runcmd:
+        - apt-get remove -y python3-simplejson python3-pyasn1 python3-pyasn1-modules
+        - git clone https://opendev.org/openstack/devstack
+        - bash devstack/tools/create-stack-user.sh
+        - mv devstack/ /opt/stack/
+        - chown -R stack:stack /opt/stack/devstack
+        - sudo -u stack cp /opt/stack/devstack/samples/local.conf /opt/stack/devstack/
+        - sudo -u stack cp /opt/stack/devstack/samples/local.sh /opt/stack/devstack/
+        - echo disable_service horizon cinder | sudo -u stack tee -a /opt/stack/devstack/local.conf
+        - sudo -u stack GIT_DEPTH=1 /opt/stack/devstack/stack.sh
+        - sudo -u stack bash /opt/stack/devstack/local.sh
+
