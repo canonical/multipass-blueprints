@@ -43,7 +43,7 @@ instances:
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
 
           apt-get -y update
-          apt-get -y install jq gh sysstat zsh fzf
+          apt-get -y install jq gh sysstat zsh fzf tox
 
         - |
           # apt cleanup
@@ -71,7 +71,7 @@ instances:
           sh -c "until microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w; do sleep 5; done"
           sh -c "until microk8s.kubectl rollout status deployments/coredns -n kube-system -w; do sleep 5; done"
           sh -c "until microk8s.kubectl rollout status daemonsets/nginx-ingress-microk8s-controller -n ingress -w; do sleep 5; done"
-          sudo -u ubuntu juju bootstrap microk8s charm-dev
+          sudo -u ubuntu juju bootstrap --no-gui microk8s charm-dev
           sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
 
         final_message: "The system is finally up, after $UPTIME seconds"
