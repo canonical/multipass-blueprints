@@ -35,6 +35,7 @@ instances:
           systemctl disable motd-news.service motd-news.timer --now
           systemctl disable bluetooth.target --now
           systemctl disable ua-messaging.service ua-messaging.timer --now
+          systemctl disable systemd-tmpfiles-clean.timer --now
 
         - |
           # various tools via apt
