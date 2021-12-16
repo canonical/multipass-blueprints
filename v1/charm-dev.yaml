@@ -11,6 +11,17 @@ instances:
     timeout: 900
     cloud-init:
       vendor-data: |
+        package_update: true
+
+        packages:
+        - python3-pip
+        - jq
+        - gh
+        - sysstat
+        - zsh
+        - fzf
+        - tox
+
         snap:
           commands:
           - snap install --classic juju
@@ -18,8 +29,11 @@ instances:
           - snap alias microk8s.kubectl kubectl
           - snap install --classic charmcraft
           - snap install yq
+          - snap refresh
 
         runcmd:
+        - DEBIAN_FRONTEND=noninteractive apt -y upgrade
+
         - |
           # disable swap
           sysctl -w vm.swappiness=0
@@ -44,9 +58,6 @@ instances:
           # gh cli
           curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-
-          apt-get -y update
-          apt-get -y install jq gh sysstat zsh fzf tox
 
         - |
           # apt cleanup
