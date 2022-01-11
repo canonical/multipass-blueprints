@@ -1,0 +1,53 @@
+description: A playground environment with docker and related tools
+version: latest
+
+instances:
+  docker-playground:
+    image: 21.04
+    limits:
+      min-cpu: 2
+      min-mem: 4G
+      min-disk: 40G
+    cloud-init:
+      vendor-data: |
+        snap:
+          commands:
+          - snap install docker
+          - snap install yq
+
+        runcmd:
+        - |
+          # disable swap
+          sysctl vm.swappiness=0
+          echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
+
+        - |
+          # disable unnecessary services
+          systemctl disable man-db.timer man-db.service --now
+          systemctl disable apport.service apport-autoreport.service  --now
+          systemctl disable apt-daily.service apt-daily.timer --now
+          systemctl disable apt-daily-upgrade.service apt-daily-upgrade.timer --now
+          systemctl disable unattended-upgrades.service --now
+          systemctl disable motd-news.service motd-news.timer --now
+          systemctl disable bluetooth.target --now
+          systemctl disable ua-messaging.service ua-messaging.timer --now
+
+        - |
+          # various tools via apt
+          # gh cli
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+
+          apt-get -y update
+          apt-get -y install jq skopeo gh
+
+        - |
+          # dive, to easily browse image layers
+          wget https://github.com/wagoodman/dive/releases/download/v0.9.2/dive_0.9.2_linux_amd64.deb
+          dpkg -i ./dive_0.9.2_linux_amd64.deb
+
+        - |
+          # apt cleanup
+          apt-get autoremove -y
+
+        final_message: "The system is finally up, after $UPTIME seconds"
