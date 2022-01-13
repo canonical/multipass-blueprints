@@ -69,7 +69,6 @@ instances:
           sudo -u ubuntu git clone https://github.com/zsh-users/zsh-autosuggestions.git ~ubuntu/.oh-my-zsh/custom/plugins/zsh-autosuggestions
           sudo -u ubuntu git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~ubuntu/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
           sudo -u ubuntu sed -i 's/plugins=(git)/plugins=(fzf git zsh-autosuggestions zsh-syntax-highlighting virtualenv colored-man-pages juju colorize)/g' ~ubuntu/.zshrc
-          sudo -u ubuntu sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="bureau"/g' ~ubuntu/.zshrc
 
         - |
           # setup charmcraft
@@ -82,9 +81,9 @@ instances:
           microk8s status --wait-ready
           microk8s.enable storage dns ingress
           # wait for storage, dns to become available
-          sh -c "until microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w; do sleep 5; done"
-          sh -c "until microk8s.kubectl rollout status deployments/coredns -n kube-system -w; do sleep 5; done"
-          sh -c "until microk8s.kubectl rollout status daemonsets/nginx-ingress-microk8s-controller -n ingress -w; do sleep 5; done"
+          microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w --timeout=600s
+          microk8s.kubectl rollout status deployments/coredns -n kube-system -w --timeout=600s
+          microk8s.kubectl rollout status daemonsets/nginx-ingress-microk8s-controller -n ingress -w --timeout=600s
 
           # workaround for
           # ERROR resolving microk8s credentials: max duration exceeded: secret for service account "juju-credential-microk8s" not found
