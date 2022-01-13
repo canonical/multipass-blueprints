@@ -1,3 +1,10 @@
+# This workflow creates a juju testing environment ready to go.
+# A microk8s controller and an empty model are created as part of the cloud-init script
+# so you can `juju deploy` right away.
+# For development convenience, charmcraft and tox are installed as well.
+# If you are a zsh user, the ohmyzsh juju plugin is already enabled when you switch to zsh.
+
+
 description: A development and testing environment for charmers
 version: latest
 
