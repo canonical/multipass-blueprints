@@ -54,6 +54,7 @@ instances:
 
         - |
           # apt cleanup
+          apt remove -y landscape-client landscape-common
           apt-get autoremove -y
 
         - |
