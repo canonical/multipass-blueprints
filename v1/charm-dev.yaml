@@ -8,6 +8,11 @@
 description: A development and testing environment for charmers
 version: latest
 
+runs-on:
+- amd64
+- arm64
+- s390x
+
 instances:
   charm-dev:
     image: 20.04
