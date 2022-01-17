@@ -80,10 +80,17 @@ instances:
           # setup microk8s and bootstrap
           adduser ubuntu microk8s
           microk8s status --wait-ready
-          microk8s.enable storage dns ingress
-          # wait for storage, dns to become available
-          microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w --timeout=600s
+          
+          # The dns addon will restart the api server so you may see a blip in the availability
+          # Separating addons to avoid errors such as 
+          # dial tcp 127.0.0.1:16443: connect: connection refused
+          microk8s.enable dns
           microk8s.kubectl rollout status deployments/coredns -n kube-system -w --timeout=600s
+          
+          microk8s.enable storage
+          microk8s.enable ingress
+          # wait for storage, ingress to become available
+          microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w --timeout=600s
           microk8s.kubectl rollout status daemonsets/nginx-ingress-microk8s-controller -n ingress -w --timeout=600s
 
           # workaround for
