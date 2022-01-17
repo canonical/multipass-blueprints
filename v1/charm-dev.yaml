@@ -9,7 +9,7 @@ description: A development and testing environment for charmers
 version: latest
 
 runs-on:
-- amd64
+- x86_64
 - arm64
 - s390x
 
