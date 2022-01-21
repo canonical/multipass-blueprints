@@ -9,12 +9,18 @@ instances:
       min-disk: 40G
     cloud-init:
       vendor-data: |
+        groups:
+        - docker
         snap:
           commands:
           - snap install docker
           - snap install yq
 
         runcmd:
+        - |
+          # add `ubuntu` to the `docker` group
+          adduser ubuntu docker
+          
         - |
           # disable swap
           sysctl vm.swappiness=0
