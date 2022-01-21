@@ -2,8 +2,7 @@ description: A playground environment with docker and related tools
 version: latest
 
 instances:
-  docker-playground:
-    image: 21.04
+  docker:
     limits:
       min-cpu: 2
       min-mem: 4G
