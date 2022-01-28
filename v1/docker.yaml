@@ -1,6 +1,13 @@
 description: A Docker environment with Portainer and related tools
 version: latest
 
+runs-on:
+- arm
+- arm64
+- power64
+- s390x
+- x86_64
+
 instances:
   docker:
     limits:
