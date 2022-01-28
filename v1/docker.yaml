@@ -111,11 +111,6 @@ instances:
           systemctl disable ua-messaging.service ua-messaging.timer --now
 
         - |
-          # dive, to easily browse image layers
-          wget https://github.com/wagoodman/dive/releases/download/v0.9.2/dive_0.9.2_linux_amd64.deb
-          dpkg -i ./dive_0.9.2_linux_amd64.deb
-
-        - |
           # portainer, to easily manage containers
           # available on http://<IP>:9000
           docker run -d \
