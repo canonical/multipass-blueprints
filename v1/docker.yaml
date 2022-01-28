@@ -1,4 +1,4 @@
-description: A playground environment with docker and related tools
+description: A Docker environment with Portainer and related tools
 version: latest
 
 instances:
@@ -82,6 +82,8 @@ instances:
         - docker-ce
         - docker-ce-cli
         - containerd.io
+        - jq
+        - skopeo
 
         snap:
           commands:
@@ -91,7 +93,7 @@ instances:
         - |
           # add `ubuntu` to the `docker` group
           adduser ubuntu docker
-          
+
         - |
           # disable swap
           sysctl vm.swappiness=0
@@ -107,15 +109,6 @@ instances:
           systemctl disable motd-news.service motd-news.timer --now
           systemctl disable bluetooth.target --now
           systemctl disable ua-messaging.service ua-messaging.timer --now
-
-        - |
-          # various tools via apt
-          # gh cli
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-
-          apt-get -y update
-          apt-get -y install jq skopeo gh
 
         - |
           # dive, to easily browse image layers
