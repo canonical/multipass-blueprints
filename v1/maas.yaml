@@ -1,0 +1,105 @@
+# This workflow creates a MAAS environment ready to go.
+# MAAS region and rack controller are created as part of the cloud-init script
+
+description: A testing environment for MAAS
+version: latest
+
+runs-on:
+  - x86_64
+  - arm64
+  - s390x
+
+instances:
+  charm-dev:
+    image: 20.04
+    limits:
+      min-cpu: 4
+      min-mem: 8G
+      min-disk: 32G
+    timeout: 900
+    cloud-init:
+      vendor-data: |
+        write_files:
+        - content: |
+            config:
+              core.https_address: '[::]:8443'
+              core.trust_password: password
+            networks:
+            - config:
+                ipv4.address: 10.10.10.1/24
+                ipv6.address: none
+              description: ""
+              name: lxdbr0
+              type: ""
+              project: default
+            storage_pools:
+            - config:
+                size: 24GB
+              description: ""
+              name: default
+              driver: zfs
+            profiles:
+            - config: {}
+              description: ""
+              devices:
+                eth0:
+                  name: eth0
+                  network: lxdbr0
+                  type: nic
+                root:
+                  path: /
+                  pool: default
+                  type: disk
+              name: default
+            projects: []
+            cluster: null
+          path: /tmp/lxd.cfg
+        packages:
+          jq
+        snap:
+          commands:
+            - snap install maas
+        #    - snap install --channel=3.0/stable maas
+            - snap install --channel=latest/stable lxd
+            - snap refresh --channel=latest/stable lxd
+            - snap install maas-test-db
+        runcmd:
+        # Fetch IPv4 address from the device, setup forwarding and NAT
+        - export IP_ADDRESS=$(ip -j route show default | jq -r '.[].prefsrc')
+        - export INTERFACE=$(ip -j route show default | jq -r '.[].dev')
+        - sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+        - sysctl -p
+        - iptables -t nat -A POSTROUTING -o $INTERFACE -j SNAT --to $IP_ADDRESS
+        # Persist NAT configuration
+        - echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
+        - echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections
+        - apt-get install iptables-persistent -y
+        # LXD init
+        - cat /tmp/lxd.cfg | lxd init --preseed
+        # Wait for LXD to be ready
+        - lxd waitready
+        # Initialise MAAS
+        - maas init region+rack --database-uri maas-test-db:/// --maas-url http://${IP_ADDRESS}:5240/MAAS
+        - sleep 15
+        # Create MAAS admin and grab API key
+        - maas createadmin --username admin --password admin --email admin
+        - export APIKEY=$(maas apikey --username admin)
+        # MAAS admin login
+        - maas login admin 'http://localhost:5240/MAAS/' $APIKEY
+        # Configure MAAS networking (set gateways, vlans, DHCP on etc)
+        - export SUBNET=10.10.10.0/24
+        - export FABRIC_ID=$(maas admin subnet read "$SUBNET" | jq -r ".vlan.fabric_id")
+        - export VLAN_TAG=$(maas admin subnet read "$SUBNET" | jq -r ".vlan.vid")
+        - export PRIMARY_RACK=$(maas admin rack-controllers read | jq -r ".[] | .system_id")
+        - maas admin subnet update $SUBNET gateway_ip=10.10.10.1
+        - maas admin ipranges create type=dynamic start_ip=10.10.10.200 end_ip=10.10.10.254
+        - maas admin vlan update $FABRIC_ID $VLAN_TAG dhcp_on=True primary_rack=$PRIMARY_RACK
+        - maas admin maas set-config name=upstream_dns value=8.8.8.8
+        # Add LXD as a VM host for MAAS
+        - maas admin vm-hosts create  password=password  type=lxd power_address=https://${IP_ADDRESS}:8443 project=maas
+        # Wait for images to be synced to MAAS
+        #- echo "Waiting for images to be synced to MAAS ..."
+        #- export status="downloading"
+        #- while [ "$status" != "synced" ]; do export status=$(maas admin rack-controller list-boot-images $PRIMARY_RACK | jq -r .status); sleep 1; done
+        #todo generate ssh key and add it to maas 
+        final_message: "The system is finally up, after $UPTIME seconds"
