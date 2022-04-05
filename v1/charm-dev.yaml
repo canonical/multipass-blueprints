@@ -32,6 +32,7 @@ instances:
         - zsh
         - fzf
         - tox
+        - gnome-keyring
 
         snap:
           commands:
