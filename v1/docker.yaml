@@ -87,10 +87,12 @@ instances:
                 -----END PGP PUBLIC KEY BLOCK-----
 
         packages:
+        - binfmt-support
         - docker-ce
         - docker-ce-cli
         - containerd.io
         - jq
+        - qemu-user-static
         - skopeo
 
         snap:
