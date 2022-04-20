@@ -44,6 +44,9 @@ instances:
     cloud-init:
       vendor-data: |       # cloud-init vendor data
         <string>
+
+health-check: |            # a health-check shell script ran by integration tests
+  <string>
 ```
 
 ## Testing

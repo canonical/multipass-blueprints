@@ -109,3 +109,14 @@ instances:
           sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
 
         final_message: "The system is finally up, after $UPTIME seconds"
+
+health-check: |
+  set -e
+
+  charmcraft version
+
+  mkdir hello-world
+  cd hello-world
+
+  charmcraft init
+  charmcraft pack

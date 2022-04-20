@@ -192,7 +192,15 @@ jobs:
 
               _run $MP list
 
-              _run $MP exec ${{ matrix.blueprint }} -- uname -a
+    - name: Add the health check script
+      run: |
+        # This is meh, but found no better way to indent properly into the yaml
+        cat <<EOF | awk '{ print "    " $0 }' >> ${TESTFLINGER_FILE}
+        # This line needed for YAML formatting
+        _run \$MP exec ${{ matrix.blueprint }} -- sh << EOSH
+        $( yq read --defaultValue 'uname -a' 'v1/${{ matrix.blueprint  }}.yaml' 'health-check' )
+        EOSH
+        EOF
 
     - name: Run the job
       id: run
