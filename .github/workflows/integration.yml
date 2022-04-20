@@ -45,6 +45,47 @@ jobs:
       TESTFLINGER_FILE: testflinger-${{ matrix.os }}-${{ matrix.driver }}.yaml
 
     steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Install yq
+      uses: chrisdickinson/setup-yq@latest
+
+    - name: Determine blueprint parameters
+      id: blueprint-params
+      run: |
+        # Give extra memory for the OS
+        MEM="$( yq read --defaultValue null 'v1/${{ matrix.blueprint }}.yaml' 'instances.${{ matrix.blueprint }}.limits.min-mem' )"
+        AMOUNT="$( echo ${MEM} | sed 's/[[:alpha:]]//g' )"
+        case "${MEM}" in
+          null)
+            MEM=2048
+            ;;
+          *G|*GB|*GiB)
+            MEM=$(( ${AMOUNT} * 1024 + 1536 ))
+            ;;
+          *M|*MB|*MiB)
+            MEM=$(( ${AMOUNT} + 1536 ))
+            ;;
+          *)
+            echo "::error ::Failed to interpret \"min-mem\" limit: \"$MEM\""
+            exit 1
+            ;;
+        esac
+        echo "::set-output name=memsize::${MEM}"
+
+        # Double the declared timeout
+        TIMEOUT="$( yq read --defaultValue null 'v1/${{ matrix.blueprint }}.yaml' 'instances.${{ matrix.blueprint }}.timeout' )"
+        case "${TIMEOUT}" in
+          null)
+            TIMEOUT=1200
+            ;;
+          *)
+            TIMEOUT=$(( ${TIMEOUT} * 2 ))
+            ;;
+        esac
+        echo "::set-output name=timeout::${TIMEOUT}"
+
     - name: Write the testflinger job
       uses: DamianReeves/write-file-action@v1.0
       with:
@@ -58,7 +99,7 @@ jobs:
             snapshot: Blueprints
             ${{ matrix.os == 'Linux' && 'image_url: http://cloud-images.ubuntu.com/releases/impish/release/ubuntu-21.10-server-cloudimg-amd64.img' || '' }}
             vmx_config:
-              memsize: 2048
+              memsize: ${{ steps.blueprint-params.outputs.memsize }}
               vhv.enable: true
               vpmc.enable: true
 
@@ -147,7 +188,7 @@ jobs:
               # Give multipassd time to settle (canonical/multipass#1995)
               _retry_grep 12 5 "^${{ matrix.blueprint }}\W" _run $MP find
 
-              _run $MP launch ${{ matrix.blueprint }} --timeout 1200
+              _run $MP launch ${{ matrix.blueprint }} --timeout ${{ steps.blueprint-params.outputs.timeout }}
 
               _run $MP list
 
