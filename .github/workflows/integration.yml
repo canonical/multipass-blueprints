@@ -1,7 +1,12 @@
 name: Integration
 
 on:
-  push:
+  workflow_dispatch:
+    inputs:
+      blueprint:
+        description: Blueprint to test
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   GetMatrix:
@@ -13,6 +18,11 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 2
+
+    - name: Install yq
+      uses: chrisdickinson/setup-yq@latest
 
     - name: Determine job matrix
       id: set-matrix
@@ -21,11 +31,31 @@ jobs:
 
         MATRIX=""
 
-        # If on push, test a predefined set of blueprints
-        if [ "${{ github.event_name }}" == "push" ]; then
+        if ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.blueprint != '' }}; then
+          # If no blueprint provided, test a predefined set
           MATRIX+='{"os": "Linux", "vm": "linux", "blueprint": "minikube"}'
           MATRIX+='{"os": "macOS", "vm": "macos-12", "arch": "x86_64", "blueprint": "docker" }'
           MATRIX+='{"os": "macOS", "arch": "arm64", "blueprint": "charm-dev" }'
+        else
+          if ${{ github.event_name == 'workflow_dispatch' }}; then
+            # On workflow dispatch, test the provided blueprint
+            FILES=$( ls v1/${{ github.event.inputs.blueprint }}.yaml )
+          else
+            # On pull requests, find modified blueprints
+            FILES=$( ls $( git diff --name-only HEAD^1 | grep 'v1/.*.yaml' ) )
+          fi
+
+          for file in ${FILES}; do
+            BLUEPRINT=$( basename -- "${file%.*}" )
+            if [ -z "$( yq read ${file} 'runs-on' )" -o -n "$( yq read ${file} 'runs-on.(.==x86_64)' )" ]; then
+              MATRIX+='{"os": "Linux", "vm": "linux", "blueprint": "'${BLUEPRINT}'"}'
+              MATRIX+='{"os": "macOS", "vm": "macos-12", "arch": "x86_64", "blueprint": "'${BLUEPRINT}'" }'
+            fi
+
+            if [ -z "$( yq read ${file} 'runs-on' )" -o -n "$( yq read ${file} 'runs-on.(.==arm64)' )" ]; then
+              MATRIX+='{"os": "macOS", "arch": "arm64", "blueprint": "'${BLUEPRINT}'" }'
+            fi
+          done
         fi
 
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "::set-output name=matrix::" $0 }'
