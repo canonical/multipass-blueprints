@@ -48,8 +48,16 @@ jobs:
           for file in ${FILES}; do
             BLUEPRINT=$( basename -- "${file%.*}" )
             if [ -z "$( yq read ${file} 'runs-on' )" -o -n "$( yq read ${file} 'runs-on.(.==x86_64)' )" ]; then
-              MATRIX+='{"os": "Linux", "vm": "linux", "blueprint": "'${BLUEPRINT}'"}'
-              MATRIX+='{"os": "macOS", "vm": "macos-12", "arch": "x86_64", "blueprint": "'${BLUEPRINT}'" }'
+
+              case ${BLUEPRINT} in
+                charm-dev)
+                  # the `charm-dev` blueprint is too heavy for nested runs
+                  ;;
+                *)
+                  MATRIX+='{"os": "Linux", "vm": "linux", "blueprint": "'${BLUEPRINT}'"}'
+                  MATRIX+='{"os": "macOS", "vm": "macos-12", "arch": "x86_64", "blueprint": "'${BLUEPRINT}'" }'
+                ;;
+              esac
             fi
 
             if [ -z "$( yq read ${file} 'runs-on' )" -o -n "$( yq read ${file} 'runs-on.(.==arm64)' )" ]; then
