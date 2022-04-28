@@ -224,7 +224,11 @@ jobs:
               fi
 
               # Give multipassd time to settle (canonical/multipass#1995)
-              _retry_grep 12 5 "^${{ matrix.blueprint }}\W" _run $MP find
+              if ! _retry_grep 12 5 "^${{ matrix.blueprint }}\W" _run $MP find; then
+                echo "::error Failed to find blueprint: ${{ matrix.blueprint }}"
+                _run $MP find
+                exit 1
+              fi
 
               _run $MP launch ${{ matrix.blueprint }} --timeout ${{ steps.blueprint-params.outputs.timeout }}
 
