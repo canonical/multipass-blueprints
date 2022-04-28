@@ -120,3 +120,5 @@ health-check: |
 
   charmcraft init
   charmcraft pack
+
+  uname -a
