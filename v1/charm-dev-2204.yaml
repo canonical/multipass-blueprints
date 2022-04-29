@@ -1,0 +1,116 @@
+# This blueprint creates a juju testing environment ready to go.
+# A microk8s controller and an empty model are created as part of the cloud-init script
+# so you can `juju deploy` right away.
+# For development convenience, charmcraft and tox are installed as well.
+# If you are a zsh user, the ohmyzsh juju plugin is already enabled when you switch to zsh.
+
+
+description: A development and testing environment for charmers
+version: latest
+
+runs-on:
+- x86_64
+- arm64
+- s390x
+
+instances:
+  charm-dev:
+    image: 22.04
+    limits:
+      min-cpu: 2
+      min-mem: 4G
+      min-disk: 30G
+    timeout: 900
+    cloud-init:
+      vendor-data: |
+        package_update: true
+
+        packages:
+        - python3-pip
+        - jq
+        - sysstat
+        - zsh
+        - fzf
+        - tox
+        - gnome-keyring
+
+        snap:
+          commands:
+          - snap install --classic juju
+          - snap install --classic microk8s
+          - snap alias microk8s.kubectl kubectl
+          - snap install --classic charmcraft
+          - snap install yq
+          - snap refresh
+
+        runcmd:
+        - DEBIAN_FRONTEND=noninteractive apt -y upgrade
+
+        - |
+          # disable swap
+          sysctl -w vm.swappiness=0
+          echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
+          swapoff -a
+
+        - |
+          # disable unnecessary services
+          systemctl disable man-db.timer man-db.service --now
+          systemctl disable apport.service apport-autoreport.service  --now
+          systemctl disable apt-daily.service apt-daily.timer --now
+          systemctl disable apt-daily-upgrade.service apt-daily-upgrade.timer --now
+          systemctl disable unattended-upgrades.service --now
+          systemctl disable motd-news.service motd-news.timer --now
+          systemctl disable bluetooth.target --now
+          systemctl disable ua-messaging.service ua-messaging.timer --now
+          systemctl disable ua-timer.timer ua-timer.service --now
+          systemctl disable systemd-tmpfiles-clean.timer --now
+
+        - |
+          # apt cleanup
+          apt remove -y landscape-client landscape-common
+          apt-get autoremove -y
+
+        - |
+          # oh-my-zsh + juju plugin
+          sudo -u ubuntu sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+          sudo -u ubuntu git clone https://github.com/zsh-users/zsh-autosuggestions.git ~ubuntu/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+          sudo -u ubuntu git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~ubuntu/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+          sudo -u ubuntu sed -i 's/plugins=(git)/plugins=(fzf git zsh-autosuggestions zsh-syntax-highlighting virtualenv colored-man-pages juju colorize)/g' ~ubuntu/.zshrc
+
+        - |
+          # setup charmcraft
+          lxd init --auto
+          adduser ubuntu lxd
+
+        - |
+          # setup microk8s and bootstrap
+          adduser ubuntu microk8s
+          microk8s status --wait-ready
+
+          # The dns addon will restart the api server so you may see a blip in the availability
+          # Separating addons to avoid errors such as
+          # dial tcp 127.0.0.1:16443: connect: connection refused
+          microk8s.enable dns
+          microk8s.kubectl rollout status deployments/coredns -n kube-system -w --timeout=600s
+
+          microk8s.enable storage
+          microk8s.enable ingress
+          # wait for storage, ingress to become available
+          microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w --timeout=600s
+          microk8s.kubectl rollout status daemonsets/nginx-ingress-microk8s-controller -n ingress -w --timeout=600s
+
+          # workaround for
+          # ERROR resolving microk8s credentials: max duration exceeded: secret for service account "juju-credential-microk8s" not found
+          # Ref: https://github.com/charmed-kubernetes/actions-operator/blob/main/src/bootstrap/index.ts
+          microk8s kubectl create serviceaccount test-sa
+          timeout 600 sh -c "until microk8s kubectl get secrets | grep -q test-sa-token-; do sleep 5; done"
+          microk8s kubectl delete serviceaccount test-sa
+
+          sudo -u ubuntu juju bootstrap --no-gui microk8s charm-dev
+          sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
+
+          # dump config (this is needed for utils such as k9s or kdash)
+          sudo -u ubuntu mkdir -p /home/ubuntu/.kube
+          microk8s config > /home/ubuntu/.kube/config
+
+        final_message: "The system is finally up, after $UPTIME seconds"
