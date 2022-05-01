@@ -224,6 +224,10 @@ jobs:
               elif [ '${{ matrix.os }}' == 'macOS' ]; then
                 PLIST_FILE="/Library/LaunchDaemons/com.canonical.multipassd.plist"
                 _install https://github.com/canonical/multipass/releases/download/v1.9.0-rc/multipass-1.9.0-rc.557+gc2561306.mac-Darwin.pkg
+
+                # force use of the qemu driver
+                _retry 5 30 _run $MP set local.driver=qemu
+
                 _run "sudo /usr/libexec/PlistBuddy -c \
                   'Add :EnvironmentVariables:MULTIPASS_BLUEPRINTS_URL string ${MULTIPASS_BLUEPRINTS_URL}' \
                   ${PLIST_FILE}"
