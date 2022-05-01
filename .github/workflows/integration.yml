@@ -73,7 +73,7 @@ jobs:
 
     runs-on: testflinger
 
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
@@ -256,7 +256,7 @@ jobs:
       id: run
       uses: nick-fields/retry@v2
       with:
-        timeout_minutes: 60
+        timeout_minutes: 90
         max_attempts: 2
         command: |
           JOB_ID=$( testflinger-cli submit --quiet ${TESTFLINGER_FILE} )
