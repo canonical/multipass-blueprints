@@ -20,7 +20,7 @@ instances:
       min-cpu: 2
       min-mem: 4G
       min-disk: 30G
-    timeout: 900
+    timeout: 1200
     cloud-init:
       vendor-data: |
         package_update: true
