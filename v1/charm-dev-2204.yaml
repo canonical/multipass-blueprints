@@ -106,7 +106,7 @@ instances:
           timeout 600 sh -c "until microk8s kubectl get secrets | grep -q test-sa-token-; do sleep 5; done"
           microk8s kubectl delete serviceaccount test-sa
 
-          sudo -u ubuntu juju bootstrap --no-gui microk8s charm-dev
+          sudo -u ubuntu juju bootstrap --no-gui microk8s charm-dev-2204
           sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
 
           # dump config (this is needed for utils such as k9s or kdash)
