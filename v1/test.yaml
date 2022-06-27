@@ -1,0 +1,10 @@
+description: A Fake blueprint to test the fix to 2542
+version: latest
+
+instances:
+  test2542:
+    image: 22.04
+    limits:
+      min-mem: 1G
+health-check: |
+  test2542
