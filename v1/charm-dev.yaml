@@ -39,6 +39,7 @@ instances:
           - snap install --classic juju
           - snap install --classic microk8s
           - snap alias microk8s.kubectl kubectl
+          - snap alias microk8s.kubectl k
           - snap install --classic charmcraft
           - snap install yq
           - snap refresh
@@ -111,6 +112,6 @@ instances:
 
           # dump config (this is needed for utils such as k9s or kdash)
           sudo -u ubuntu mkdir -p /home/ubuntu/.kube
-          microk8s config > /home/ubuntu/.kube/config
+          microk8s config | sudo -u ubuntu tee /home/ubuntu/.kube/config > /dev/null
 
         final_message: "The system is finally up, after $UPTIME seconds"
