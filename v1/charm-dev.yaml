@@ -37,6 +37,7 @@ instances:
         - fzf
         - tox
         - gnome-keyring
+        - kitty-terminfo
 
         snap:
           commands:
