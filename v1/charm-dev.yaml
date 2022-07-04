@@ -15,7 +15,7 @@ runs-on:
 
 instances:
   charm-dev:
-    image: 20.04
+    image: 22.04
     limits:
       min-cpu: 2
       min-mem: 4G
