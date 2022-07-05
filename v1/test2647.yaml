@@ -1,0 +1,19 @@
+description: Test 2647
+version: latest
+
+runs-on:
+- x86_64
+- arm64
+
+aliases:
+  lst: test2647:ls
+  lsp: test2647:pwd
+
+instances:
+  test2647:
+    image: 22.04
+    limits:
+      min-cpu: 1
+      min-mem: 4G
+      min-disk: 30G
+    timeout: 900
