@@ -99,7 +99,7 @@ instances:
           microk8s.enable dns
           microk8s.kubectl rollout status deployments/coredns -n kube-system -w --timeout=600s
           
-          microk8s.enable storage
+          microk8s.enable hostpath-storage
           microk8s.enable ingress
           # wait for storage, ingress to become available
           microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w --timeout=600s
