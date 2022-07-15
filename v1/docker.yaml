@@ -10,7 +10,7 @@ runs-on:
 
 instances:
   docker:
-    image: 21.10
+    image: 22.04
     limits:
       min-cpu: 2
       min-mem: 4G
