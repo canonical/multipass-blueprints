@@ -131,7 +131,7 @@ jobs:
         write-mode: overwrite
         contents: |
           job_queue: ${{ matrix.os == 'macOS' && matrix.arch == 'arm64' && 'macos-arm' || 'vmware-fusion' }}
-          output_timeout: 2400
+          output_timeout: ${{ steps.blueprint-params.outputs.timeout }}
           provision_data:
             ${{ matrix.vm && format('vmx: /Users/michal/Virtual Machines.localized/{0}.vmwarevm/{0}.vmx', matrix.vm) || '' }}
             snapshot: Blueprints

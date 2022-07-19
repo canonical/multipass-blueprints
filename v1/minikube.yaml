@@ -14,7 +14,7 @@ instances:
       min-cpu: 2
       min-mem: 4G
       min-disk: 40G
-    timeout: 900
+    timeout: 1800
     cloud-init:
       vendor-data: |
         apt:
