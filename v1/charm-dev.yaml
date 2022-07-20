@@ -114,3 +114,14 @@ instances:
           microk8s config > /home/ubuntu/.kube/config
 
         final_message: "The system is finally up, after $UPTIME seconds"
+
+health-check: |
+  set -e
+
+  charmcraft version
+
+  mkdir hello-world
+  cd hello-world
+
+  charmcraft init
+  charmcraft pack

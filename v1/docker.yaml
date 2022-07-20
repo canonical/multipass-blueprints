@@ -136,3 +136,6 @@ instances:
           apt-get autoremove -y
 
         final_message: "The system is finally up, after $UPTIME seconds"
+
+health-check: |
+  docker run hello-world
