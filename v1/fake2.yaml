@@ -1,0 +1,14 @@
+description: A Fake blueprint to test CI
+version: latest
+
+instances:
+  fake2:
+    image: 22.04
+    limits:
+      min-mem: 1G
+    cloud-init:
+      vendor-data: |
+        packages: [cowsay]
+
+health-check: |
+  cowsay fake2
