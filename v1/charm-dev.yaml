@@ -93,6 +93,9 @@ instances:
           adduser ubuntu microk8s
           microk8s status --wait-ready
           
+          microk8s.enable metrics-server
+          microk8s.kubectl rollout status deployments/metrics-server -n kube-system -w --timeout=600s
+
           # The dns addon will restart the api server so you may see a blip in the availability
           # Separating addons to avoid errors such as 
           # dial tcp 127.0.0.1:16443: connect: connection refused
