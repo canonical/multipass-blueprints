@@ -1,6 +1,8 @@
 name: Integration
 
 on:
+  push:
+    branches: [trying, staging]
   workflow_dispatch:
     inputs:
       blueprint:
@@ -276,3 +278,15 @@ jobs:
       if: ${{ cancelled() }}
       run: |
         if [ -f testflinger_job ]; then testflinger-cli cancel "$( cat testflinger_job )"; fi
+
+  # Report result to Bors on `staging` and `trying` branches.
+  Bors:
+    if: ${{ always() && github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
+    needs: [CI]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Report failure
+      if: ${{ needs.CI.result != 'success' }}
+      run: exit 1
