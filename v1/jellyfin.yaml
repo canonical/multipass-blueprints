@@ -1,0 +1,30 @@
+description: Jellyfin is a Free Software Media System that puts you in control of managing and streaming your media.
+version: latest
+
+runs-on:
+- arm64
+- x86_64
+
+instances:
+  docker:
+    image: 20.04
+    limits:
+      min-cpu: 2
+      min-mem: 4G
+      min-disk: 40G
+    cloud-init:
+      vendor-data: |
+        package_update: true
+        package_upgrade: true
+        
+        packages:
+        - apt-transport-https
+        
+        runcmd:
+        - add-apt-repository universe
+        - curl -fsSL https://repo.jellyfin.org/ubuntu/jellyfin_team.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/debian-jellyfin.gpg
+        - echo "deb [arch=$( dpkg --print-architecture )] https://repo.jellyfin.org/ubuntu $( lsb_release -c -s ) main" | sudo tee /etc/apt/sources.list.d/jellyfin.list
+        - apt update -y
+        - apt install jellyfin -y
+
+        final_message: "The system is finally up, after $UPTIME seconds"
