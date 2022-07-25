@@ -6,7 +6,7 @@ runs-on:
 - x86_64
 
 instances:
-  docker:
+  jellyfin:
     image: 20.04
     limits:
       min-cpu: 2
