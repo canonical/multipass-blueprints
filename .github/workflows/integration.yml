@@ -102,10 +102,10 @@ jobs:
             MEM=2048
             ;;
           *G|*GB|*GiB)
-            MEM=$(( ${AMOUNT} * 1024 + 1536 ))
+            MEM=$(( ${AMOUNT} * 1024 + 2048 ))
             ;;
           *M|*MB|*MiB)
-            MEM=$(( ${AMOUNT} + 1536 ))
+            MEM=$(( ${AMOUNT} + 2048 ))
             ;;
           *)
             echo "::error ::Failed to interpret \"min-mem\" limit: \"$MEM\""
