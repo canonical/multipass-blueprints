@@ -132,10 +132,10 @@ jobs:
         path: ${{ env.TESTFLINGER_FILE }}
         write-mode: overwrite
         contents: |
-          job_queue: ${{ matrix.os == 'macOS' && matrix.arch == 'arm64' && 'macos-arm' || 'vmware-fusion' }}
+          job_queue: ${{ matrix.os == 'macOS' && matrix.arch == 'arm64' && 'macos-arm' || matrix.vm }}
           output_timeout: ${{ steps.blueprint-params.outputs.timeout }}
           provision_data:
-            ${{ matrix.vm && format('vmx: /Users/michal/Virtual Machines.localized/{0}.vmwarevm/{0}.vmx', matrix.vm) || '' }}
+            ${{ matrix.vm && format('vmx: /Users/cibot/Virtual Machines.localized/{0}.vmwarevm/{0}.vmx', matrix.vm) || '' }}
             snapshot: Blueprints
             ${{ matrix.os == 'Linux' && 'image_url: http://cloud-images.ubuntu.com/releases/impish/release/ubuntu-21.10-server-cloudimg-amd64.img' || '' }}
             vmx_config:
