@@ -1,6 +1,8 @@
 name: Integration
 
 on:
+  push:
+    branches: [trying, staging]
   workflow_dispatch:
     inputs:
       blueprint:
@@ -31,39 +33,39 @@ jobs:
 
         MATRIX=""
 
-        if ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.blueprint != '' }}; then
-          # If no blueprint provided, test a predefined set
+        if ${{ github.event_name == 'workflow_dispatch' }}; then
+          # On workflow dispatch, test the provided blueprint
+          FILES=$( ls v1/${{ github.event.inputs.blueprint }}.yaml )
+        else
+          # Else, find modified blueprints
+          FILES=$( git diff --name-only HEAD^1 | grep 'v1/.*.yaml' || /bin/true )
+        fi
+
+        for file in ${FILES}; do
+          BLUEPRINT=$( basename -- "${file%.*}" )
+          if [ -z "$( yq read ${file} 'runs-on' )" -o -n "$( yq read ${file} 'runs-on.(.==x86_64)' )" ]; then
+
+            case ${BLUEPRINT} in
+              charm-dev)
+                # the `charm-dev` blueprint is too heavy for nested runs
+                ;;
+              *)
+                MATRIX+='{"os": "Linux", "vm": "linux", "blueprint": "'${BLUEPRINT}'"}'
+                MATRIX+='{"os": "macOS", "vm": "macos-12", "arch": "x86_64", "blueprint": "'${BLUEPRINT}'" }'
+              ;;
+            esac
+          fi
+
+          if [ -z "$( yq read ${file} 'runs-on' )" -o -n "$( yq read ${file} 'runs-on.(.==arm64)' )" ]; then
+            MATRIX+='{"os": "macOS", "arch": "arm64", "blueprint": "'${BLUEPRINT}'" }'
+          fi
+        done
+
+        if [ -z "${MATRIX}" ]; then
+          # If no blueprints requested or modified, test a predefined set
           MATRIX+='{"os": "Linux", "vm": "linux", "blueprint": "minikube"}'
           MATRIX+='{"os": "macOS", "vm": "macos-12", "arch": "x86_64", "blueprint": "docker" }'
           MATRIX+='{"os": "macOS", "arch": "arm64", "blueprint": "charm-dev" }'
-        else
-          if ${{ github.event_name == 'workflow_dispatch' }}; then
-            # On workflow dispatch, test the provided blueprint
-            FILES=$( ls v1/${{ github.event.inputs.blueprint }}.yaml )
-          else
-            # On pull requests, find modified blueprints
-            FILES=$( ls $( git diff --name-only HEAD^1 | grep 'v1/.*.yaml' ) )
-          fi
-
-          for file in ${FILES}; do
-            BLUEPRINT=$( basename -- "${file%.*}" )
-            if [ -z "$( yq read ${file} 'runs-on' )" -o -n "$( yq read ${file} 'runs-on.(.==x86_64)' )" ]; then
-
-              case ${BLUEPRINT} in
-                charm-dev)
-                  # the `charm-dev` blueprint is too heavy for nested runs
-                  ;;
-                *)
-                  MATRIX+='{"os": "Linux", "vm": "linux", "blueprint": "'${BLUEPRINT}'"}'
-                  MATRIX+='{"os": "macOS", "vm": "macos-12", "arch": "x86_64", "blueprint": "'${BLUEPRINT}'" }'
-                ;;
-              esac
-            fi
-
-            if [ -z "$( yq read ${file} 'runs-on' )" -o -n "$( yq read ${file} 'runs-on.(.==arm64)' )" ]; then
-              MATRIX+='{"os": "macOS", "arch": "arm64", "blueprint": "'${BLUEPRINT}'" }'
-            fi
-          done
         fi
 
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "::set-output name=matrix::" $0 }'
@@ -100,10 +102,10 @@ jobs:
             MEM=2048
             ;;
           *G|*GB|*GiB)
-            MEM=$(( ${AMOUNT} * 1024 + 1536 ))
+            MEM=$(( ${AMOUNT} * 1024 + 2048 ))
             ;;
           *M|*MB|*MiB)
-            MEM=$(( ${AMOUNT} + 1536 ))
+            MEM=$(( ${AMOUNT} + 2048 ))
             ;;
           *)
             echo "::error ::Failed to interpret \"min-mem\" limit: \"$MEM\""
@@ -130,10 +132,10 @@ jobs:
         path: ${{ env.TESTFLINGER_FILE }}
         write-mode: overwrite
         contents: |
-          job_queue: ${{ matrix.os == 'macOS' && matrix.arch == 'arm64' && 'macos-arm' || 'vmware-fusion' }}
+          job_queue: ${{ matrix.os == 'macOS' && matrix.arch == 'arm64' && 'macos-arm' || matrix.vm }}
           output_timeout: ${{ steps.blueprint-params.outputs.timeout }}
           provision_data:
-            ${{ matrix.vm && format('vmx: /Users/michal/Virtual Machines.localized/{0}.vmwarevm/{0}.vmx', matrix.vm) || '' }}
+            ${{ matrix.vm && format('vmx: /Users/cibot/Virtual Machines.localized/{0}.vmwarevm/{0}.vmx', matrix.vm) || '' }}
             snapshot: Blueprints
             ${{ matrix.os == 'Linux' && 'image_url: http://cloud-images.ubuntu.com/releases/impish/release/ubuntu-21.10-server-cloudimg-amd64.img' || '' }}
             vmx_config:
@@ -267,7 +269,7 @@ jobs:
           echo "${JOB_ID}" > testflinger_job
 
           testflinger-cli poll "${JOB_ID}"
-          [ "$( testflinger-cli results ${JOB_ID} | jq -r .test_status )" -eq 0 ]
+          [ "$( testflinger-cli results ${JOB_ID} | jq -r .test_status )" == "0" ]
 
         on_retry_command: |
           testflinger-cli cancel "$( cat testflinger_job )"
@@ -276,3 +278,15 @@ jobs:
       if: ${{ cancelled() }}
       run: |
         if [ -f testflinger_job ]; then testflinger-cli cancel "$( cat testflinger_job )"; fi
+
+  # Report result to Bors on `staging` and `trying` branches.
+  Bors:
+    if: ${{ always() && github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
+    needs: [CI]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Report failure
+      if: ${{ needs.CI.result != 'success' }}
+      run: exit 1
