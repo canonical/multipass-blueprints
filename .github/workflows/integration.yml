@@ -35,7 +35,7 @@ jobs:
 
         if ${{ github.event_name == 'workflow_dispatch' }}; then
           # On workflow dispatch, test the provided blueprint
-          FILES=$( ls v1/${{ github.event.inputs.blueprint }}.yaml )
+          FILES=$( ls v1/${{ github.event.inputs.blueprint }}.yaml || /bin/true )
         else
           # Else, find modified blueprints
           FILES=$( git diff --name-only HEAD^1 | grep 'v1/.*.yaml' || /bin/true )
