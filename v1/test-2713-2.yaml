@@ -1,0 +1,9 @@
+description: Another Fake blueprint to test the PR 2713
+version: latest
+
+instances:
+  test-2713-2:
+    workspace: false
+    image: 22.04
+    limits:
+      min-mem: 1G
