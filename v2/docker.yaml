@@ -13,7 +13,7 @@ instances:
       arm64:
         url: https://github.com/canonical/multipass-blueprints-images/releases/download/v0.1.0-alpha/ubuntu-22.04-server-docker-blueprint-arm64.img
         sha256: https://github.com/canonical/multipass-blueprints-images/releases/download/v0.1.0-alpha/ubuntu-22.04-server-docker-blueprint-arm64-sha256
-
+    workspace: true
     limits:
       min-cpu: 2
       min-mem: 4G

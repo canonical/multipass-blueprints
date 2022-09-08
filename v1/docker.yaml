@@ -14,6 +14,7 @@ aliases:
 instances:
   docker:
     image: 22.04
+    workspace: true
     limits:
       min-cpu: 2
       min-mem: 4G
