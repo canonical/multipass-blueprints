@@ -6,7 +6,7 @@ instances:
     images:
       x86_64:
         url: https://github.com/canonical/multipass-blueprints-images/releases/download/v0.1.0-alpha/packer-ubuntu-22.04-server-docker-blueprint-amd64.img
-        sha256: e3030b0b9faf2edcd8684213c8195af2e284bc62f487e46022c2a5afc9b0e7f8
+        sha256: 14f40e4a5497e6a1bdacf226b1218103404cbbe1b47ce0cb95b67f7095601262
     limits:
       min-cpu: 2
       min-mem: 4G
