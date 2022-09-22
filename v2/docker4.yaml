@@ -1,0 +1,44 @@
+description: Docker with wrong SHA256 on URL
+version: latest
+
+instances:
+  docker4:
+    images:
+      x86_64:
+        url: https://github.com/canonical/multipass-blueprints-images/releases/download/v0.1.0-alpha/packer-ubuntu-22.04-server-docker-blueprint-amd64.img
+        sha256: https://luis4a0.duckdns.org/docker4.sha256
+    limits:
+      min-cpu: 2
+      min-mem: 4G
+      min-disk: 40G
+    cloud-init:
+      vendor-data: |
+        runcmd:
+        - |
+          # add `ubuntu` to the `docker` group
+          adduser ubuntu docker
+
+        - |
+          # disable swap
+          sysctl vm.swappiness=0
+          echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
+
+        - |
+          # disable unnecessary services
+          systemctl disable man-db.timer man-db.service --now
+          systemctl disable apport.service apport-autoreport.service  --now
+          systemctl disable apt-daily.service apt-daily.timer --now
+          systemctl disable apt-daily-upgrade.service apt-daily-upgrade.timer --now
+          systemctl disable unattended-upgrades.service --now
+          systemctl disable motd-news.service motd-news.timer --now
+          systemctl disable bluetooth.target --now
+          systemctl disable ua-messaging.service ua-messaging.timer --now
+
+        - |
+          # apt cleanup
+          apt-get autoremove -y
+
+        final_message: "The system is finally up, after $UPTIME seconds"
+
+health-check: |
+  docker run hello-world
