@@ -5,8 +5,12 @@ instances:
   docker:
     images:
       x86_64:
-        url: https://github.com/canonical/multipass-blueprints-images/releases/download/v0.1.0-alpha/packer-ubuntu-22.04-server-docker-blueprint-amd64.img
-        sha256: 14f40e4a5497e6a1bdacf226b1218103404cbbe1b47ce0cb95b67f7095601262
+        url: https://github.com/canonical/multipass-blueprints-images/releases/download/v0.1.0-alpha/ubuntu-22.04-server-docker-blueprint-amd64.img
+        sha256: https://github.com/canonical/multipass-blueprints-images/releases/download/v0.1.0-alpha/ubuntu-22.04-server-docker-blueprint-amd64-sha256
+      arm64:
+        url: https://github.com/canonical/multipass-blueprints-images/releases/download/v0.1.0-alpha/ubuntu-22.04-server-docker-blueprint-arm64.img
+        sha256: https://github.com/canonical/multipass-blueprints-images/releases/download/v0.1.0-alpha/ubuntu-22.04-server-docker-blueprint-arm64-sha256
+
     limits:
       min-cpu: 2
       min-mem: 4G
