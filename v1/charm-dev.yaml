@@ -3,6 +3,10 @@
 # so you can `juju deploy` right away.
 # For development convenience, charmcraft and tox are installed as well.
 # If you are a zsh user, the ohmyzsh juju plugin is already enabled when you switch to zsh.
+#
+# To create a VM similar to a GitHub-hosted runner:
+# multipass launch --mem 7G --cpus 2 --name charm-dev-2cpu-7g charm-dev
+# https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
 
 
 description: A development and testing environment for charmers
@@ -15,12 +19,12 @@ runs-on:
 
 instances:
   charm-dev:
-    image: 20.04
+    image: 22.04
     limits:
       min-cpu: 2
       min-mem: 4G
       min-disk: 30G
-    timeout: 900
+    timeout: 1200
     cloud-init:
       vendor-data: |
         package_update: true
@@ -33,12 +37,14 @@ instances:
         - fzf
         - tox
         - gnome-keyring
+        - kitty-terminfo
 
         snap:
           commands:
           - snap install --classic juju
           - snap install --classic microk8s
           - snap alias microk8s.kubectl kubectl
+          - snap alias microk8s.kubectl k
           - snap install --classic charmcraft
           - snap install yq
           - snap refresh
@@ -87,30 +93,37 @@ instances:
           adduser ubuntu microk8s
           microk8s status --wait-ready
           
+          microk8s.enable metrics-server
+          microk8s.kubectl rollout status deployments/metrics-server -n kube-system -w --timeout=600s
+
           # The dns addon will restart the api server so you may see a blip in the availability
           # Separating addons to avoid errors such as 
           # dial tcp 127.0.0.1:16443: connect: connection refused
           microk8s.enable dns
           microk8s.kubectl rollout status deployments/coredns -n kube-system -w --timeout=600s
           
-          microk8s.enable storage
+          microk8s.enable hostpath-storage
           microk8s.enable ingress
           # wait for storage, ingress to become available
           microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w --timeout=600s
           microk8s.kubectl rollout status daemonsets/nginx-ingress-microk8s-controller -n ingress -w --timeout=600s
-
-          # workaround for
-          # ERROR resolving microk8s credentials: max duration exceeded: secret for service account "juju-credential-microk8s" not found
-          # Ref: https://github.com/charmed-kubernetes/actions-operator/blob/main/src/bootstrap/index.ts
-          microk8s kubectl create serviceaccount test-sa
-          timeout 600 sh -c "until microk8s kubectl get secrets | grep -q test-sa-token-; do sleep 5; done"
-          microk8s kubectl delete serviceaccount test-sa
 
           sudo -u ubuntu juju bootstrap --no-gui microk8s charm-dev
           sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
 
           # dump config (this is needed for utils such as k9s or kdash)
           sudo -u ubuntu mkdir -p /home/ubuntu/.kube
-          microk8s config > /home/ubuntu/.kube/config
+          microk8s config | sudo -u ubuntu tee /home/ubuntu/.kube/config > /dev/null
 
         final_message: "The system is finally up, after $UPTIME seconds"
+
+health-check: |
+  set -e
+
+  charmcraft version
+
+  mkdir hello-world
+  cd hello-world
+
+  charmcraft init
+  charmcraft pack

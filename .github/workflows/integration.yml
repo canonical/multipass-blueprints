@@ -1,0 +1,292 @@
+name: Integration
+
+on:
+  push:
+    branches: [trying, staging]
+  workflow_dispatch:
+    inputs:
+      blueprint:
+        description: Blueprint to test
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  GetMatrix:
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 2
+
+    - name: Install yq
+      uses: chrisdickinson/setup-yq@latest
+
+    - name: Determine job matrix
+      id: set-matrix
+      run: |
+        set -euo pipefail
+
+        MATRIX=""
+
+        if ${{ github.event_name == 'workflow_dispatch' }}; then
+          # On workflow dispatch, test the provided blueprint
+          FILES=$( ls v1/${{ github.event.inputs.blueprint }}.yaml )
+        else
+          # Else, find modified blueprints
+          FILES=$( git diff --name-only HEAD^1 | grep 'v1/.*.yaml' || /bin/true )
+        fi
+
+        for file in ${FILES}; do
+          BLUEPRINT=$( basename -- "${file%.*}" )
+          if [ -z "$( yq read ${file} 'runs-on' )" -o -n "$( yq read ${file} 'runs-on.(.==x86_64)' )" ]; then
+
+            case ${BLUEPRINT} in
+              charm-dev)
+                # the `charm-dev` blueprint is too heavy for nested runs
+                ;;
+              *)
+                MATRIX+='{"os": "Linux", "vm": "linux", "blueprint": "'${BLUEPRINT}'"}'
+                MATRIX+='{"os": "macOS", "vm": "macos-12", "arch": "x86_64", "blueprint": "'${BLUEPRINT}'" }'
+              ;;
+            esac
+          fi
+
+          if [ -z "$( yq read ${file} 'runs-on' )" -o -n "$( yq read ${file} 'runs-on.(.==arm64)' )" ]; then
+            MATRIX+='{"os": "macOS", "arch": "arm64", "blueprint": "'${BLUEPRINT}'" }'
+          fi
+        done
+
+        if [ -z "${MATRIX}" ]; then
+          # If no blueprints requested or modified, test a predefined set
+          MATRIX+='{"os": "Linux", "vm": "linux", "blueprint": "minikube"}'
+          MATRIX+='{"os": "macOS", "vm": "macos-12", "arch": "x86_64", "blueprint": "docker" }'
+          MATRIX+='{"os": "macOS", "arch": "arm64", "blueprint": "charm-dev" }'
+        fi
+
+        echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "::set-output name=matrix::" $0 }'
+
+  CI:
+    needs: GetMatrix
+
+    runs-on: testflinger
+
+    timeout-minutes: 120
+
+    strategy:
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
+      fail-fast: false
+
+    env:
+      TESTFLINGER_FILE: testflinger-${{ matrix.os }}-${{ matrix.driver }}.yaml
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Install yq
+      uses: chrisdickinson/setup-yq@latest
+
+    - name: Determine blueprint parameters
+      id: blueprint-params
+      run: |
+        # Give extra memory for the OS
+        MEM="$( yq read --defaultValue null 'v1/${{ matrix.blueprint }}.yaml' 'instances.${{ matrix.blueprint }}.limits.min-mem' )"
+        AMOUNT="$( echo ${MEM} | sed 's/[[:alpha:]]//g' )"
+        case "${MEM}" in
+          null)
+            MEM=2048
+            ;;
+          *G|*GB|*GiB)
+            MEM=$(( ${AMOUNT} * 1024 + 2048 ))
+            ;;
+          *M|*MB|*MiB)
+            MEM=$(( ${AMOUNT} + 2048 ))
+            ;;
+          *)
+            echo "::error ::Failed to interpret \"min-mem\" limit: \"$MEM\""
+            exit 1
+            ;;
+        esac
+        echo "::set-output name=memsize::${MEM}"
+
+        # Double the declared timeout
+        TIMEOUT="$( yq read --defaultValue null 'v1/${{ matrix.blueprint }}.yaml' 'instances.${{ matrix.blueprint }}.timeout' )"
+        case "${TIMEOUT}" in
+          null)
+            TIMEOUT=1200
+            ;;
+          *)
+            TIMEOUT=$(( ${TIMEOUT} * 2 ))
+            ;;
+        esac
+        echo "::set-output name=timeout::${TIMEOUT}"
+
+    - name: Write the testflinger job
+      uses: DamianReeves/write-file-action@v1.0
+      with:
+        path: ${{ env.TESTFLINGER_FILE }}
+        write-mode: overwrite
+        contents: |
+          job_queue: ${{ matrix.os == 'macOS' && matrix.arch == 'arm64' && 'macos-arm' || matrix.vm }}
+          output_timeout: ${{ steps.blueprint-params.outputs.timeout }}
+          provision_data:
+            ${{ matrix.vm && format('vmx: /Users/cibot/Virtual Machines.localized/{0}.vmwarevm/{0}.vmx', matrix.vm) || '' }}
+            snapshot: Blueprints
+            ${{ matrix.os == 'Linux' && 'image_url: http://cloud-images.ubuntu.com/releases/impish/release/ubuntu-21.10-server-cloudimg-amd64.img' || '' }}
+            vmx_config:
+              memsize: ${{ steps.blueprint-params.outputs.memsize }}
+              vhv.enable: true
+              vpmc.enable: true
+
+          test_data:
+            test_cmds: |
+              set -xeuo pipefail
+
+              MP=multipass
+              [ '${{ matrix.os }}' == 'macOS' ] && MP=/usr/local/bin/multipass
+
+              function _run() {{
+                ssh ${{ '${{SSH_OPTS}} "${{DEVICE_USER}}@${{DEVICE_IP}}" -- "${{@}}"' }}
+              }}
+
+              # Retry $1 times, with $2 seconds in between tries
+              function _retry() {{
+                  tries=$1
+                  interval=$2
+                  shift 2
+                  for try in $( seq $tries ); do
+                      RC=0
+                      ${{ '"${{@}}"' }} || RC=$?
+                      [ $RC -eq 0 -o $try -eq $tries ] && return $RC
+                      sleep $interval;
+                  done
+              }}
+
+              # Retry $1 times, with $2 seconds in between tries, until $3 greps
+              function _retry_grep() {{
+                  tries=$1
+                  interval=$2
+                  pattern=$3
+                  shift 3
+                  for try in $( seq $tries ); do
+                      RC=0
+                      ${{ '"${{@}}"' }} | grep --quiet -e "$pattern" || RC=$?
+                      [ $RC -eq 0 -o $try -eq $tries ] && return $RC
+                      sleep $interval;
+                  done
+              }}
+
+              # Log journal entries on bad exit
+              function _exit() {{
+                RC=$?
+                if [ '${{ matrix.os }}' == 'Linux' ]; then
+                  [ $RC -eq 0 ] || _run sudo journalctl -u snap.multipass*
+                elif [ '${{ matrix.os }}' == 'macOS' ]; then
+                  [ $RC -eq 0 ] || _run sudo cat /Library/Logs/Multipass/multipassd.log
+                  # Authenticate the root user
+                  _run $MP set local.passphrase=foobar || true
+                  _run sudo $MP authenticate foobar || true
+                  ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
+                  _run sudo rm -rf /Library/Logs/Multipass
+                fi
+              }}
+              trap _exit EXIT
+
+              function _install() {{
+                PACKAGE="$1"
+
+                if [ '${{ matrix.os }}' == 'Linux' ]; then
+                  # Give snapd time to settle
+                  _retry 5 30 _run sudo sh -c "snap\ list\ multipass && sudo snap refresh multipass --channel ${PACKAGE} || sudo snap install multipass --channel ${PACKAGE}"
+
+                elif [ '${{ matrix.os }}' == 'macOS' ]; then
+                  ( echo y; echo y ) | _run sudo PATH=/bin:/usr/local/bin /bin/sh "/Library/Application\\ Support/com.canonical.multipass/uninstall.sh" || true
+                  _run curl --location --output multipass.pkg "${PACKAGE}"
+                  _run sudo installer -dumplog -target / -pkg multipass.pkg
+                fi
+              }}
+
+              MULTIPASS_BLUEPRINTS_URL="${{ format('{0}/{1}/archive/{2}.zip', github.server_url, github.repository, github.ref) }}"
+              if [ '${{ matrix.os }}' == 'Linux' ]; then
+                OVERRIDE_CONF="/etc/systemd/system/snap.multipass.multipassd.service.d/override.conf"
+                _run sudo mkdir -p $( dirname ${OVERRIDE_CONF} )
+                _run sudo tee ${OVERRIDE_CONF} <<- EOF
+                  [Service]
+                  ExecStart=
+                  ExecStart=/usr/bin/snap run multipass.multipassd --verbosity trace
+                  Environment=MULTIPASS_BLUEPRINTS_URL=${MULTIPASS_BLUEPRINTS_URL}
+              EOF
+                _install beta
+
+              elif [ '${{ matrix.os }}' == 'macOS' ]; then
+                PLIST_FILE="/Library/LaunchDaemons/com.canonical.multipassd.plist"
+                _install https://github.com/canonical/multipass/releases/download/v1.9.0-rc/multipass-1.9.0-rc.557+gc2561306.mac-Darwin.pkg
+
+                # force use of the qemu driver
+                _retry 5 30 _run $MP set local.driver=qemu
+
+                _run "sudo /usr/libexec/PlistBuddy -c \
+                  'Add :EnvironmentVariables:MULTIPASS_BLUEPRINTS_URL string ${MULTIPASS_BLUEPRINTS_URL}' \
+                  ${PLIST_FILE}"
+                _run sudo launchctl unload "${PLIST_FILE}"
+                _run sudo launchctl load "${PLIST_FILE}"
+              fi
+
+              # Give multipassd time to settle (canonical/multipass#1995)
+              if ! _retry_grep 12 5 "^${{ matrix.blueprint }}\W" _run $MP find; then
+                echo "::error Failed to find blueprint: ${{ matrix.blueprint }}"
+                _run $MP find
+                exit 1
+              fi
+
+              _run $MP launch ${{ matrix.blueprint }} --timeout ${{ steps.blueprint-params.outputs.timeout }}
+
+              _run $MP list
+
+    - name: Add the health check script
+      run: |
+        # This is meh, but found no better way to indent properly into the yaml
+        cat <<EOF | awk '{ print "    " $0 }' >> ${TESTFLINGER_FILE}
+        # This line needed for YAML formatting
+        _run \$MP exec ${{ matrix.blueprint }} -- sh << EOSH
+        $( yq read --defaultValue 'uname -a' 'v1/${{ matrix.blueprint  }}.yaml' 'health-check' )
+        EOSH
+        EOF
+
+    - name: Run the job
+      id: run
+      uses: nick-fields/retry@v2
+      with:
+        timeout_minutes: 90
+        max_attempts: 2
+        command: |
+          JOB_ID=$( testflinger-cli submit --quiet ${TESTFLINGER_FILE} )
+          echo "${JOB_ID}" > testflinger_job
+
+          testflinger-cli poll "${JOB_ID}"
+          [ "$( testflinger-cli results ${JOB_ID} | jq -r .test_status )" == "0" ]
+
+        on_retry_command: |
+          testflinger-cli cancel "$( cat testflinger_job )"
+
+    - name: Cancel the job
+      if: ${{ cancelled() }}
+      run: |
+        if [ -f testflinger_job ]; then testflinger-cli cancel "$( cat testflinger_job )"; fi
+
+  # Report result to Bors on `staging` and `trying` branches.
+  Bors:
+    if: ${{ always() && github.event_name == 'push' && contains('refs/heads/staging refs/heads/trying', github.ref) }}
+    needs: [CI]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Report failure
+      if: ${{ needs.CI.result != 'success' }}
+      run: exit 1

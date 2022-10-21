@@ -1,0 +1,8 @@
+status = [
+  "Bors"
+]
+block-labels = [ "no-merge" ]
+timeout-sec = 9000
+delete-merged-branches = true
+update-base-for-deletes = true
+cut-body-after = "---"

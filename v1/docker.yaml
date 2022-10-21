@@ -10,7 +10,7 @@ runs-on:
 
 instances:
   docker:
-    image: 21.10
+    image: 22.04
     limits:
       min-cpu: 2
       min-mem: 4G
@@ -136,3 +136,6 @@ instances:
           apt-get autoremove -y
 
         final_message: "The system is finally up, after $UPTIME seconds"
+
+health-check: |
+  docker run hello-world
