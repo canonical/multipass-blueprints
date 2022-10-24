@@ -18,7 +18,7 @@ runs-on:
 - s390x
 
 instances:
-  charm-dev:
+  charm-dev-juju-3.x:
     image: 22.04
     limits:
       min-cpu: 2
