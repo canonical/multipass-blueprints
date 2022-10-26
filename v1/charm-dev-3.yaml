@@ -18,7 +18,7 @@ runs-on:
 - s390x
 
 instances:
-  charm-dev-juju-3:
+  charm-dev-3:
     image: 22.04
     limits:
       min-cpu: 2
@@ -41,7 +41,7 @@ instances:
 
         snap:
           commands:
-          - snap install juju --channel=3.0/stable
+          - snap install juju --channel=latest/edge
           - snap install microk8s --channel 1.25-strict/stable
           - snap alias microk8s.kubectl kubectl
           - snap alias microk8s.kubectl k
@@ -108,7 +108,7 @@ instances:
           microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w --timeout=600s
           microk8s.kubectl rollout status daemonsets/nginx-ingress-microk8s-controller -n ingress -w --timeout=600s
 
-          sudo -u ubuntu juju bootstrap microk8s charm-dev-juju-3
+          sudo -u ubuntu juju bootstrap microk8s charm-dev-3
           sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
 
           # dump config (this is needed for utils such as k9s or kdash)
