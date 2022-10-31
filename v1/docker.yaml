@@ -8,6 +8,9 @@ runs-on:
 - s390x
 - x86_64
 
+aliases:
+  docker: docker:docker
+
 instances:
   docker:
     image: 22.04
