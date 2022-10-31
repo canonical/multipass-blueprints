@@ -1,6 +1,9 @@
 description: A Docker environment with Portainer and related tools
 version: latest
 
+aliases:
+  docker: docker:docker
+
 instances:
   docker:
     images:
@@ -37,10 +40,6 @@ instances:
           systemctl disable motd-news.service motd-news.timer --now
           systemctl disable bluetooth.target --now
           systemctl disable ua-messaging.service ua-messaging.timer --now
-
-        - |
-          # apt cleanup
-          apt-get autoremove -y
 
         final_message: "The system is finally up, after $UPTIME seconds"
 
