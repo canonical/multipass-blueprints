@@ -41,7 +41,7 @@ instances:
 
         snap:
           commands:
-          - snap install --classic juju
+          - snap install --edge --classic juju
           - snap install --classic microk8s
           - snap alias microk8s.kubectl kubectl
           - snap alias microk8s.kubectl k
