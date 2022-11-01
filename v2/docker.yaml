@@ -1,5 +1,5 @@
 description: A Docker environment with Portainer and related tools
-version: latest
+version: v0.2
 
 aliases:
   docker: docker:docker
