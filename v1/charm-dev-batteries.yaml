@@ -102,6 +102,8 @@ instances:
 
         - |
           # setup microk8s and bootstrap
+          sudo usermod -a -G snap_microk8s ubuntu
+          sudo -u ubuntu mkdir -p /home/ubuntu/.kube
           adduser ubuntu microk8s
           microk8s status --wait-ready
 
@@ -124,7 +126,6 @@ instances:
           sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
 
           # dump config (this is needed for utils such as k9s or kdash)
-          sudo -u ubuntu mkdir -p /home/ubuntu/.kube
           microk8s config | sudo -u ubuntu tee /home/ubuntu/.kube/config > /dev/null
 
           # We need to connect the dot-local-share-juju interface with jhack
