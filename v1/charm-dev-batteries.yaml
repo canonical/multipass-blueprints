@@ -85,6 +85,7 @@ instances:
           sudo -u ubuntu git clone https://github.com/zsh-users/zsh-autosuggestions.git ~ubuntu/.oh-my-zsh/custom/plugins/zsh-autosuggestions
           sudo -u ubuntu git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~ubuntu/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
           sudo -u ubuntu sed -i 's/plugins=(git)/plugins=(fzf git zsh-autosuggestions zsh-syntax-highlighting virtualenv colored-man-pages juju colorize)/g' ~ubuntu/.zshrc
+          sudo -u ubuntu sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="bira"/g' ~ubuntu/.zshrc
 
         - |
           # change default shell
@@ -96,6 +97,7 @@ instances:
           adduser ubuntu lxd
 
         - |
+          # Make sure juju directory is there
           sudo -u ubuntu mkdir -p /home/ubuntu/.local/share/juju
 
         - |
