@@ -11,11 +11,7 @@
 
 description: |
   A development and testing environment for charmers with batteries included.
-  This blueprint includes:
-    - microk8s: 1.25-strict/stable
-    - juju: 3.0/stable
-    - oh-my-zsh + juju plugin
-    - jhack
+
 version: latest
 
 runs-on:
