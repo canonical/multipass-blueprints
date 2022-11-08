@@ -23,7 +23,7 @@ instances:
   charm-dev-batteries:
     image: 22.04
     limits:
-      min-cpu: 2
+      min-cpu: 3
       min-mem: 4G
       min-disk: 30G
     timeout: 1200
