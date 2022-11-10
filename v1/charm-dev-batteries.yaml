@@ -5,7 +5,7 @@
 # If you are a zsh user, the ohmyzsh juju plugin is already enabled when you switch to zsh.
 #
 # To create a VM similar to a GitHub-hosted runner:
-# multipass launch --mem 7G --cpus 2 --name charm-dev-2cpu-7g charm-dev
+# multipass launch --mem 7G --cpus 2 --name charm-dev-2cpu-7g charm-dev-batteries
 # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
 
 
