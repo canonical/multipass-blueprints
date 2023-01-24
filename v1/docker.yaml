@@ -1,5 +1,5 @@
 description: A Docker environment with Portainer and related tools
-version: latest
+version: 0.4
 
 runs-on:
 - arm
@@ -8,9 +8,14 @@ runs-on:
 - s390x
 - x86_64
 
+aliases:
+  docker: docker:docker
+  docker-compose: docker:docker-compose
+
 instances:
   docker:
     image: 22.04
+    workspace: true
     limits:
       min-cpu: 2
       min-mem: 4G
@@ -90,6 +95,7 @@ instances:
         - binfmt-support
         - docker-ce
         - docker-ce-cli
+        - docker-compose
         - containerd.io
         - jq
         - qemu-user-static
