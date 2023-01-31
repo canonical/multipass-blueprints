@@ -103,7 +103,9 @@ instances:
 
         snap:
           commands:
+          - snap refresh lxd --channel latest/stable
           - snap install yq
+          - snap install --classic --channel edge rockcraft
 
         runcmd:
         - |
@@ -136,6 +138,10 @@ instances:
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v portainer_data:/data \
             portainer/portainer-ce
+
+        - |
+          # setup lxd
+          lxd init --auto
 
         - |
           # apt cleanup
