@@ -64,7 +64,7 @@ instances:
           append: true
           defer: true
 
-        run_cmd:
+        runcmd:
         - |
           # Initialise rosdep
           rosdep init
