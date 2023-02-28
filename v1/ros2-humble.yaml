@@ -1,5 +1,5 @@
 description: A development and testing environment for ROS 2 Humble.
-version: latest
+version: 0.1
 
 runs-on:
 - arm64
