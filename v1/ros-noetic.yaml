@@ -1,0 +1,82 @@
+description: A development and testing environment for ROS Noetic.
+version: 0.1
+
+runs-on:
+- arm64
+- x86_64
+
+instances:
+  ros-noetic:
+    image: 20.04
+    limits:
+      min-cpu: 2
+      min-mem: 4G
+      min-disk: 40G
+    timeout: 1800
+    cloud-init:
+      vendor-data: |
+        apt:
+          sources:
+            ros2:
+              source: "deb http://packages.ros.org/ros/ubuntu $RELEASE main"
+              keyid: C1CF 6E31 E6BA DE88 68B1 72B4 F42E D6FB AB17 C654
+
+        package_upgrade: true
+
+        packages:
+        - build-essential
+        - cmake
+        - curl
+        - git
+        - lsb-release
+        - openssh-client
+        - openssh-server
+        - python3
+        - python3-pip
+        - snapd
+        - tig
+        - unzip
+        - vim
+        - wget
+        - zip
+        # ROS specific packages
+        - python3-catkin-tools
+        - python3-rosdep
+        - python3-rosinstall
+        - python3-rosinstall-generator
+        - python3-vcstool
+        - ros-noetic-desktop-full
+
+        snap:
+          commands:
+          - snap install snapcraft --classic
+
+        write_files:
+
+        - content: |
+
+            [[ -z "${XAUTHORITY}" ]] && export XAUTHORITY=$HOME/.Xauthority
+
+            if [ -f /opt/ros/noetic/setup.bash ]; then
+              source /opt/ros/noetic/setup.bash
+            fi
+          path: /home/ubuntu/.bashrc
+          append: true
+          defer: true
+
+        runcmd:
+        - |
+          # Initialise rosdep
+          rosdep init
+          sudo -u ubuntu sh -c "rosdep update --rosdistro noetic"
+
+        final_message: "The ROS Noetic environment is up, after $UPTIME seconds."
+
+health-check: |
+  set -e
+
+  rosdep --version
+  ls /etc/ros/rosdep/sources.list.d/20-default.list
+  ls /home/ubuntu/.ros/rosdep/sources.cache
+
+  ls /opt/ros/noetic
