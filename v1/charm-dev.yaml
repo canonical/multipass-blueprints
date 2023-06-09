@@ -125,6 +125,10 @@ instances:
           sudo -u ubuntu juju bootstrap microk8s charm-dev
           sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
 
+        - |
+          # set default shell to zsh
+          sudo usermod --shell /usr/bin/zsh ubuntu
+
         final_message: "The system is finally up, after $UPTIME seconds"
 
 health-check: |
