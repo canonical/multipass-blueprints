@@ -5,7 +5,7 @@
 # If you are a zsh user, the ohmyzsh juju plugin is already enabled when you switch to zsh.
 #
 # To create a VM similar to a GitHub-hosted runner:
-# multipass launch --mem 7G --cpus 2 --name charm-dev-2cpu-7g charm-dev
+# multipass launch --memory 7G --cpus 2 --name charm-dev-2cpu-7g charm-dev
 # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
 
 
@@ -41,16 +41,19 @@ instances:
 
         snap:
           commands:
-          - snap install --classic juju
-          - snap install --classic microk8s
+          - snap install juju --channel=3.2/stable
+          - snap install microk8s --channel=1.27-strict/stable
           - snap alias microk8s.kubectl kubectl
           - snap alias microk8s.kubectl k
           - snap install --classic charmcraft
+          - snap install jhack --channel=latest/stable
           - snap install yq
           - snap refresh
 
         runcmd:
-        - DEBIAN_FRONTEND=noninteractive apt -y upgrade
+        - DEBIAN_FRONTEND=noninteractive apt-get remove -y landscape-client landscape-common adwaita-icon-theme humanity-icon-theme
+        - DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
+        - DEBIAN_FRONTEND=noninteractive apt-get -y autoremove
 
         - |
           # disable swap
@@ -71,6 +74,12 @@ instances:
           systemctl disable ua-timer.timer ua-timer.service --now
           systemctl disable systemd-tmpfiles-clean.timer --now
 
+          # Disable IPv6
+          echo "net.ipv6.conf.all.disable_ipv6=1" | tee -a /etc/sysctl.conf
+          echo "net.ipv6.conf.default.disable_ipv6=1" | tee -a /etc/sysctl.conf
+          echo "net.ipv6.conf.lo.disable_ipv6=1" | tee -a /etc/sysctl.conf
+          sysctl -p
+
         - |
           # apt cleanup
           apt remove -y landscape-client landscape-common
@@ -89,31 +98,47 @@ instances:
           adduser ubuntu lxd
 
         - |
+          # Make sure juju directory is there
+          # https://bugs.launchpad.net/juju/+bug/1995697
+          sudo -u ubuntu mkdir -p /home/ubuntu/.local/share/juju
+
+          # Manually copy credentials to /var/snap/juju/current/microk8s/credentials/client.config
+          mkdir -p /var/snap/juju/current/microk8s/credentials
+          microk8s config | tee /var/snap/juju/current/microk8s/credentials/client.config > /dev/null
+
+        - |
           # setup microk8s and bootstrap
-          adduser ubuntu microk8s
+          usermod -a -G snap_microk8s ubuntu
+          usermod -a -G microk8s ubuntu
           microk8s status --wait-ready
-          
+
           microk8s.enable metrics-server
           microk8s.kubectl rollout status deployments/metrics-server -n kube-system -w --timeout=600s
 
           # The dns addon will restart the api server so you may see a blip in the availability
-          # Separating addons to avoid errors such as 
+          # Separating addons to avoid errors such as
           # dial tcp 127.0.0.1:16443: connect: connection refused
           microk8s.enable dns
           microk8s.kubectl rollout status deployments/coredns -n kube-system -w --timeout=600s
-          
+
+          # wait for storage, ingress to become available
           microk8s.enable hostpath-storage
           microk8s.enable ingress
-          # wait for storage, ingress to become available
           microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w --timeout=600s
           microk8s.kubectl rollout status daemonsets/nginx-ingress-microk8s-controller -n ingress -w --timeout=600s
-
-          sudo -u ubuntu juju bootstrap --no-gui microk8s charm-dev
-          sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
 
           # dump config (this is needed for utils such as k9s or kdash)
           sudo -u ubuntu mkdir -p /home/ubuntu/.kube
           microk8s config | sudo -u ubuntu tee /home/ubuntu/.kube/config > /dev/null
+
+          # bootstrap controllers
+          sudo -u ubuntu juju bootstrap microk8s microk8s
+          sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome-k8s
+          sudo -u ubuntu juju bootstrap localhost lxd
+          sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome-lxd
+
+          # We need to connect the dot-local-share-juju interface with jhack
+          sudo snap connect jhack:dot-local-share-juju snapd
 
         final_message: "The system is finally up, after $UPTIME seconds"
 
