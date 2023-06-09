@@ -41,7 +41,7 @@ instances:
 
         snap:
           commands:
-          - snap install --classic juju
+          - snap install --classic juju --channel=3.2/stable
           - snap install --classic microk8s
           - snap alias microk8s.kubectl kubectl
           - snap alias microk8s.kubectl k
@@ -108,12 +108,22 @@ instances:
           microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w --timeout=600s
           microk8s.kubectl rollout status daemonsets/nginx-ingress-microk8s-controller -n ingress -w --timeout=600s
 
-          sudo -u ubuntu juju bootstrap --no-gui microk8s charm-dev
-          sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
+          # https://bugs.launchpad.net/juju/+bug/1995697
+          # The issue is that 3.0 is a strictly confined snap, and is not allowed to
+          # create ~/.local/share. You can install 3.0.0 directly, and just 'mkdir -p
+          # ~/.local/share' and then Juju 3.0 will also work.
+          sudo -u ubuntu mkdir -p /home/ubuntu/.local/share
+
+          # juju > 3.0 explicitly need k8s credentials in /var/snap/juju/23190/microk8s/credentials/client.config
+          sudo -u root mkdir -p /var/snap/juju/current/microk8s/credentials
+          microk8s config | sudo -u root tee /var/snap/juju/current/microk8s/credentials/client.config > /dev/null
 
           # dump config (this is needed for utils such as k9s or kdash)
           sudo -u ubuntu mkdir -p /home/ubuntu/.kube
           microk8s config | sudo -u ubuntu tee /home/ubuntu/.kube/config > /dev/null
+
+          sudo -u ubuntu juju bootstrap microk8s charm-dev
+          sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome
 
         final_message: "The system is finally up, after $UPTIME seconds"
 
