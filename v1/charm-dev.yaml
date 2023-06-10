@@ -105,7 +105,6 @@ instances:
         - |
           # setup microk8s and bootstrap
           usermod -a -G snap_microk8s ubuntu
-          usermod -a -G microk8s ubuntu
           microk8s status --wait-ready
 
           microk8s.enable metrics-server
