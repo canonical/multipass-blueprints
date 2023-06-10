@@ -102,10 +102,6 @@ instances:
           # https://bugs.launchpad.net/juju/+bug/1995697
           sudo -u ubuntu mkdir -p /home/ubuntu/.local/share/juju
 
-          # Manually copy credentials to /var/snap/juju/current/microk8s/credentials/client.config
-          mkdir -p /var/snap/juju/current/microk8s/credentials
-          microk8s config | tee /var/snap/juju/current/microk8s/credentials/client.config > /dev/null
-
         - |
           # setup microk8s and bootstrap
           usermod -a -G snap_microk8s ubuntu
@@ -131,11 +127,15 @@ instances:
           sudo -u ubuntu mkdir -p /home/ubuntu/.kube
           microk8s config | sudo -u ubuntu tee /home/ubuntu/.kube/config > /dev/null
 
+          # Manually copy credentials to /var/snap/juju/current/microk8s/credentials/client.config
+          mkdir -p /var/snap/juju/current/microk8s/credentials
+          microk8s config | tee /var/snap/juju/current/microk8s/credentials/client.config > /dev/null
+
           # bootstrap controllers
-          sudo -u ubuntu juju bootstrap microk8s microk8s
-          sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome-k8s
           sudo -u ubuntu juju bootstrap localhost lxd
           sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome-lxd
+          sudo -u ubuntu juju bootstrap microk8s microk8s
+          sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome-k8s
 
           # We need to connect the dot-local-share-juju interface with jhack
           sudo snap connect jhack:dot-local-share-juju snapd
