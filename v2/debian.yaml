@@ -1,0 +1,26 @@
+description: Debian 12 Bullseye
+version: latest
+
+instances:
+  debian:
+    images:
+      x86_64:
+        url: https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2
+
+      arm64:
+        url: https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-arm64.qcow2
+
+    limits:
+      min-cpu: 1
+      min-mem: 4G
+      min-disk: 40G
+
+    cloud-init:
+      vendor-data: |
+        packages:
+        - snapd
+
+        final_message: "The system is finally up, after $UPTIME seconds"
+
+health-check: |
+  cat /etc/issue.net
