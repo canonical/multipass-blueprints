@@ -1,0 +1,50 @@
+description: Arch Linux
+version: latest
+
+instances:
+  arch:
+    images:
+      # Official Arch Linux is only x86_64.
+      x86_64:
+        url: https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
+        sha256: https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2.SHA256
+
+    limits:
+      min-cpu: 1
+      min-mem: 4G
+      min-disk: 40G
+
+    timeout: 1200
+
+    cloud-init:
+      vendor-data: |
+        packages:
+        # All these are needed to build snapd.
+        - git
+        - fakeroot
+        - gcc
+        - make
+        - automake
+        - autoconf
+        - pkgconf
+        # To check for installed programs, Multipass uses `which`.
+        - which
+
+        runcmd:
+        # Compile and install snapd.
+        - cd /home/ubuntu
+        - su ubuntu -c "git clone https://aur.archlinux.org/snapd.git"
+        - cd snapd
+        - su ubuntu -c "makepkg -si --noconfirm --noprogressbar"
+        - cd ..
+        - rm -rf /home/ubuntu/snapd
+        - systemctl enable --now snapd.socket
+        - ln -s /var/lib/snapd/snap /snap
+        - systemctl start --now snapd.socket
+        - systemctl enable --now snapd.apparmor
+        - snap install bare
+
+        final_message: "The system is finally up, after $UPTIME seconds"
+
+health-check: |
+  cat /etc/issue
