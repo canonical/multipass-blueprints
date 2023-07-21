@@ -1,0 +1,42 @@
+description: Fedora Cloud 38 1.6
+version: latest
+
+instances:
+  fedora:
+    images:
+      x86_64:
+        url: https://download.fedoraproject.org/pub/fedora/linux/releases/38/Cloud/x86_64/images/Fedora-Cloud-Base-38-1.6.x86_64.qcow2
+
+      arm64:
+        url: https://download.fedoraproject.org/pub/fedora/linux/releases/38/Cloud/aarch64/images/Fedora-Cloud-Base-38-1.6.aarch64.qcow2
+
+    limits:
+      min-cpu: 1
+      min-mem: 4G
+      min-disk: 40G
+
+    timeout: 3600
+
+    cloud-init:
+      vendor-data: |
+        packages:
+          - snapd
+          - which # For Multipass to check that sshfs is installed.
+          - kernel # For squashfs mounts.
+        package_reboot_if_required: true
+        power_state:
+          delay: now
+          mode: reboot
+          message: "Rebooting machine to use the new kernel"
+          condition: true
+        runcmd:
+          - touch /var/run/reboot-required
+          - ln -s /var/lib/snapd/snap /snap # To be able to install classic snaps.
+        snap:
+          commands:
+            - snap install snapd
+
+        final_message: "The system is finally up, after $UPTIME seconds"
+
+health-check: |
+  cat /etc/issue.net
