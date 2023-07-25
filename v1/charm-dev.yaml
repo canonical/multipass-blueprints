@@ -114,7 +114,7 @@ instances:
           # The dns addon will restart the api server so you may see a blip in the availability
           # Separating addons to avoid errors such as
           # dial tcp 127.0.0.1:16443: connect: connection refused
-          microk8s.enable dns
+          microk8s.enable dns rbac
           microk8s.kubectl rollout status deployments/coredns -n kube-system -w --timeout=600s
 
           # wait for storage become available
@@ -128,19 +128,22 @@ instances:
           microk8s enable metallb:$IPADDR-$IPADDR
           microk8s.kubectl rollout status daemonset.apps/speaker -n metallb-system -w --timeout=600s
 
+          ## Manually copy credentials to /var/snap/juju/current/microk8s/credentials/client.config
+          #mkdir -p /var/snap/juju/current/microk8s/credentials
+          #microk8s config | tee /var/snap/juju/current/microk8s/credentials/client.config > /dev/null
+
+          # For some reason, without this sleep, bootstrapping a controller errors out with "Terminated".
+          sleep 30
+
+          # bootstrap controllers
+          sudo -u ubuntu juju bootstrap localhost lxd
+          sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome-lxd
+          sudo -u ubuntu juju bootstrap microk8s microk8s
+          sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome-k8s
+
           # dump config (this is needed for utils such as k9s or kdash)
           sudo -u ubuntu mkdir -p /home/ubuntu/.kube
           microk8s config | sudo -u ubuntu tee /home/ubuntu/.kube/config > /dev/null
-
-          # Manually copy credentials to /var/snap/juju/current/microk8s/credentials/client.config
-          mkdir -p /var/snap/juju/current/microk8s/credentials
-          microk8s config | tee /var/snap/juju/current/microk8s/credentials/client.config > /dev/null
-
-          # bootstrap controllers
-          sudo -u ubuntu juju bootstrap microk8s microk8s
-          sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome-k8s
-          sudo -u ubuntu juju bootstrap localhost lxd
-          sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="60m" welcome-lxd
 
           # We need to connect the dot-local-share-juju interface with jhack
           sudo snap connect jhack:dot-local-share-juju snapd
