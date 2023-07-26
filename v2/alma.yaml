@@ -1,0 +1,36 @@
+description: Alma Linux 9
+version: latest
+
+instances:
+  alma:
+    images:
+      x86_64:
+        url: https://repo.almalinux.org/almalinux/9/cloud/x86_64/images/AlmaLinux-9-GenericCloud-latest.x86_64.qcow2
+
+      arm64:
+        url: https://repo.almalinux.org/almalinux/9/cloud/aarch64/images/AlmaLinux-9-OpenNebula-latest.aarch64.qcow2
+
+    limits:
+      min-cpu: 1
+      min-mem: 4G
+      min-disk: 40G
+
+    cloud-init:
+      vendor-data: |
+        runcmd:
+          # Install snapd.
+          - dnf -y install epel-release
+          - dnf -y install snapd
+          - ln -s /var/lib/snapd/snap /snap
+          - systemctl enable --now snapd.socket
+          - systemctl start --now snapd.socket
+          - snap install snapd
+          # Update kernel so as to have 9p module.
+          - dnf -y install https://www.elrepo.org/elrepo-release-9.el9.elrepo.noarch.rpm
+          - rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+          - dnf -y --enablerepo elrepo-kernel install kernel-lt
+
+        final_message: "The system is finally up, after $UPTIME seconds"
+
+health-check: |
+  cat /etc/issue.net
