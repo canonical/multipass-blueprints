@@ -41,7 +41,8 @@ instances:
 
         snap:
           commands:
-          - snap install juju --channel=3.2/stable
+          # Juju 3.1 is supported until 25.04
+          - snap install juju --channel=3.1/stable
           - snap install microk8s --channel=1.27-strict/stable
           - snap alias microk8s.kubectl kubectl
           - snap alias microk8s.kubectl k
@@ -125,9 +126,6 @@ instances:
           IPADDR=$(ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc')
           microk8s enable metallb:$IPADDR-$IPADDR
           microk8s.kubectl rollout status daemonset.apps/speaker -n metallb-system -w --timeout=600s
-
-          # For some reason, without this sleep, bootstrapping a controller errors out with "Terminated".
-          sleep 30
 
           # bootstrap controllers
           sudo -u ubuntu juju bootstrap localhost lxd
