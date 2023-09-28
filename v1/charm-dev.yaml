@@ -82,11 +82,6 @@ instances:
           sysctl -p
 
         - |
-          # apt cleanup
-          apt remove -y landscape-client landscape-common
-          apt autoremove -y
-
-        - |
           # oh-my-zsh + juju plugin
           sudo -u ubuntu sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
           sudo -u ubuntu git clone https://github.com/zsh-users/zsh-autosuggestions.git ~ubuntu/.oh-my-zsh/custom/plugins/zsh-autosuggestions
