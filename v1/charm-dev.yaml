@@ -52,9 +52,9 @@ instances:
           - snap refresh
 
         runcmd:
-        - DEBIAN_FRONTEND=noninteractive apt-get remove -y landscape-client landscape-common adwaita-icon-theme humanity-icon-theme
-        - DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
-        - DEBIAN_FRONTEND=noninteractive apt-get -y autoremove
+        - DEBIAN_FRONTEND=noninteractive apt remove -y landscape-client landscape-common adwaita-icon-theme humanity-icon-theme
+        - DEBIAN_FRONTEND=noninteractive apt -y upgrade
+        - DEBIAN_FRONTEND=noninteractive apt -y autoremove
 
         - |
           # disable swap
@@ -84,7 +84,7 @@ instances:
         - |
           # apt cleanup
           apt remove -y landscape-client landscape-common
-          apt-get autoremove -y
+          apt autoremove -y
 
         - |
           # oh-my-zsh + juju plugin
