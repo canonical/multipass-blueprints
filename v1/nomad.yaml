@@ -1,0 +1,85 @@
+description: A single node HashiCorp Nomad cluster with Consul
+version: 0.1
+
+runs-on:
+- arm64
+- x86_64
+
+instances:
+  nomad:
+    image: lts
+    limits:
+      min-cpu: 2
+      min-mem: 4G
+      min-disk: 20G
+    cloud-init:
+      vendor-data: |
+        apt:
+          sources:
+            hashicorp:
+              keyid: 798AEC654E5C15428C8E42EEAA16FCBCA621E701 # fingerprint of https://apt.releases.hashicorp.com/gpg to fetch from Ubuntu Keyserver
+              source: "deb [signed-by=$KEY_FILE] https://apt.releases.hashicorp.com $RELEASE main"
+            docker:
+              keyid: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+              source: "deb [signed-by=$KEY_FILE] https://download.docker.com/linux/ubuntu $RELEASE stable"
+        package_update: true
+        packages:
+          - nomad
+          - consul
+          - unzip
+          - jq
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+
+        write_files:
+          - path: /etc/consul.d/server.hcl
+            defer: true
+            content: |
+              server = true
+              bootstrap = true
+
+              bind_addr = "{{ GetPrivateIP }}"
+              client_addr = "0.0.0.0"
+
+              retry_join = ["{{ GetPrivateIP }}"]
+
+              connect {
+                enabled = true
+              }
+
+              ports {
+                grpc = 8502
+              }
+
+              ui_config {
+                enabled = true
+              }
+
+          - content: |
+              net.bridge.bridge-nf-call-arptables = 1
+              net.bridge.bridge-nf-call-ip6tables = 1
+              net.bridge.bridge-nf-call-iptables = 1
+            path: /etc/sysctl.d/bridge.conf
+
+        runcmd:
+          # CNI Plugins Installation
+          # ref: https://developer.hashicorp.com/nomad/docs/integrations/consul-connect#cni-plugins
+
+          - curl  -L -o cni-plugins.tgz "https://github.com/containernetworking/plugins/releases/download/v1.0.0/cni-plugins-linux-$( [ $(uname -m) = aarch64 ] && echo arm64 || echo amd64)"-v1.0.0.tgz
+          - mkdir -p /opt/cni/bin
+          - tar -C /opt/cni/bin -xzf cni-plugins.tgz
+
+          - modprobe br_netfilter
+          - echo 1 | sudo tee /proc/sys/net/bridge/bridge-nf-call-arptables
+          - echo 1 | sudo tee /proc/sys/net/bridge/bridge-nf-call-ip6tables
+          - echo 1 | sudo tee /proc/sys/net/bridge/bridge-nf-call-iptables
+
+          - usermod -aG docker ubuntu
+
+          - systemctl start consul && systemctl enable consul
+          - systemctl start nomad && systemctl enable nomad
+
+health-check: |
+  curl --fail http://0:4646/v1/status/leader
+  curl --fail http://0:8500/v1/status/leader
