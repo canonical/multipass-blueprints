@@ -91,6 +91,10 @@ instances:
                 =0YYh
                 -----END PGP PUBLIC KEY BLOCK-----
 
+        package_update: true
+        package_upgrade: true
+        package_reboot_if_required: true
+
         packages:
         - binfmt-support
         - docker-ce
@@ -103,7 +107,9 @@ instances:
 
         snap:
           commands:
+          - snap refresh lxd --channel latest/stable
           - snap install yq
+          - snap install --classic --channel edge rockcraft
 
         runcmd:
         - |
@@ -136,6 +142,16 @@ instances:
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v portainer_data:/data \
             portainer/portainer-ce
+
+        - |
+          # set up lxd (ref: https://github.com/canonical/setup-lxd/blob/main/action.yml)
+          lxd waitready
+          lxd init --auto
+          adduser ubuntu lxd
+          snap set lxd daemon.group=adm
+          snap restart lxd
+          iptables -I DOCKER-USER -i lxdbr0 -j ACCEPT
+          iptables -I DOCKER-USER -o lxdbr0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
         - |
           # apt cleanup
