@@ -54,6 +54,7 @@ instances:
           - snap alias microk8s.kubectl kubectl
           - snap alias microk8s.kubectl k
           - snap install --classic charmcraft
+          - snap install --classic rockcraft
           - snap install jhack --channel=latest/stable
           - snap install yq
           - snap refresh
