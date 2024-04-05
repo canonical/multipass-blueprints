@@ -17,9 +17,9 @@ description: A development and testing environment for charmers
 version: latest
 
 runs-on:
-- x86_64
-- arm64
-- s390x
+  - x86_64
+  - arm64
+  - s390x
 
 instances:
   charm-dev:
@@ -135,6 +135,10 @@ instances:
           IPADDR=$(ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc')
           microk8s enable metallb:$IPADDR-$IPADDR
           microk8s.kubectl rollout status daemonset.apps/speaker -n metallb-system -w --timeout=600s
+
+          # Microk8s built-in registry
+          microk8s enable registry
+          microk8s.kubectl rollout status deployment.apps/registry -n container-registry -w --timeout=600s
 
           # bootstrap controllers
           sudo -u ubuntu juju bootstrap localhost lxd
