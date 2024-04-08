@@ -27,7 +27,7 @@ instances:
     limits:
       min-cpu: 2
       min-mem: 4G
-      min-disk: 30G
+      min-disk: 50G
     timeout: 1800
     cloud-init:
       vendor-data: |
