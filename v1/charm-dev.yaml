@@ -17,9 +17,9 @@ description: A development and testing environment for charmers
 version: latest
 
 runs-on:
-- x86_64
-- arm64
-- s390x
+  - x86_64
+  - arm64
+  - s390x
 
 instances:
   charm-dev:
@@ -27,7 +27,7 @@ instances:
     limits:
       min-cpu: 2
       min-mem: 4G
-      min-disk: 30G
+      min-disk: 50G
     timeout: 1800
     cloud-init:
       vendor-data: |
@@ -54,6 +54,7 @@ instances:
           - snap alias microk8s.kubectl kubectl
           - snap alias microk8s.kubectl k
           - snap install --classic charmcraft
+          - snap install --classic rockcraft
           - snap install jhack --channel=latest/stable
           - snap install yq
           - snap refresh
@@ -134,6 +135,10 @@ instances:
           IPADDR=$(ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc')
           microk8s enable metallb:$IPADDR-$IPADDR
           microk8s.kubectl rollout status daemonset.apps/speaker -n metallb-system -w --timeout=600s
+
+          # Microk8s built-in registry
+          microk8s enable registry
+          microk8s.kubectl rollout status deployment.apps/registry -n container-registry -w --timeout=600s
 
           # bootstrap controllers
           sudo -u ubuntu juju bootstrap localhost lxd
