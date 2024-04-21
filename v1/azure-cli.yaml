@@ -1,3 +1,14 @@
+# Blueprint: Azure CLI Environment on Ubuntu 22.04
+# Description:
+# This blueprint facilitates the creation of a clean Azure CLI environment tailored for Ubuntu 22.04. It is designed for scenarios requiring isolated Azure CLI sessions to manage multiple Azure tenants without token overlap. By deploying separate VMs for each tenant, this approach ensures token segregation, maintaining a secure and organized workflow.
+# Additionally, this blueprint offers a temporary solution for Ubuntu 24.04 users awaiting official support from Microsoft for Azure CLI.
+
+# Deployment Instructions:
+# To deploy a new VM with this blueprint, use the following command:
+# multipass launch azure-cli
+# For managing multiple tenants by creating distinct VMs, specify unique names for each:
+# multipass launch azure-cli --name <tenant-specific-name>
+
 description: An optimized Azure CLI environment
 version: 0.1
 
@@ -25,25 +36,28 @@ instances:
         - ca-certificates
         - software-properties-common
         - python3-pip
-        - jq # Useful for parsing JSON output from Azure CLI
+        - jq # Essential for parsing JSON outputs from Azure CLI, enhancing script flexibility.
 
         runcmd:
         - curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          # This command installs the Azure CLI. It's a pivotal step for ensuring the VM is equipped with the latest Azure CLI version directly from Microsoft.
         
         write_files:
 
         - content: |
-            # Azure CLI completion
+            # Enable Azure CLI auto-completion to boost productivity by facilitating command entry and reducing syntax errors.
             echo 'source /etc/bash_completion.d/azure-cli' >> ~/.bashrc
 
           path: /home/ubuntu/.bashrc
           append: true
           defer: true
+          # This configuration step appends the auto-completion script to .bashrc, ensuring it persists across sessions for enhanced usability.
 
         final_message: "The Azure CLI environment is ready, after $UPTIME seconds."
+          # This final message is displayed once the VM setup is complete, confirming the environment is ready for use.
 
 health-check: |
   set -e
-
+  # Ensure that Azure CLI and jq are correctly installed and available. These checks validate the operational readiness of the VM.
   az --version
   jq --version
