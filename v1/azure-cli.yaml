@@ -1,0 +1,49 @@
+description: An optimized Azure CLI environment
+version: 0.1
+
+runs-on:
+- arm64
+- x86_64
+
+instances:
+  azure-cli:
+    image: 22.04
+    limits:
+      min-cpu: 1
+      min-mem: 2G
+      min-disk: 5G
+    timeout: 1800
+    cloud-init:
+      vendor-data: |
+
+        package_upgrade: true
+
+        packages:
+        - curl
+        - lsb-release
+        - apt-transport-https
+        - ca-certificates
+        - software-properties-common
+        - python3-pip
+        - jq # Useful for parsing JSON output from Azure CLI
+
+        runcmd:
+        - curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+        
+        write_files:
+
+        - content: |
+            # Azure CLI completion
+            echo 'source /etc/bash_completion.d/azure-cli' >> ~/.bashrc
+
+          path: /home/ubuntu/.bashrc
+          append: true
+          defer: true
+
+        final_message: "The Azure CLI environment is ready, after $UPTIME seconds."
+
+health-check: |
+  set -e
+
+  az --version
+  jq --version
