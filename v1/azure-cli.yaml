@@ -1,6 +1,7 @@
 # Blueprint: Azure CLI Environment on Ubuntu 22.04
 # Description:
 # This blueprint facilitates the creation of a clean Azure CLI environment tailored for Ubuntu 22.04. It is designed for scenarios requiring isolated Azure CLI sessions to manage multiple Azure tenants without token overlap. By deploying separate VMs for each tenant, this approach ensures token segregation, maintaining a secure and organized workflow.
+# This approach is similarly achievable using Docker container mcr.microsoft.com/azure-cli, offering an alternative method for creating isolated environments. However, using Multipass VMs might be preferred in some cases.
 # Additionally, this blueprint offers a temporary solution for Ubuntu 24.04 users awaiting official support from Microsoft for Azure CLI.
 
 # Deployment Instructions:
