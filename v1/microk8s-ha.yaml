@@ -1,0 +1,180 @@
+# This blueprint creates a 3-node microk8s ha cluster for juju (nested multipass).
+# A microk8s controller and an empty model are created as part of the cloud-init script
+# so you can `juju deploy` right away.
+# Unlike "charm-dev", this blueprint does not install development tools.
+#
+# References:
+# - https://discuss.kubernetes.io/t/microk8s-in-lxd/11520
+
+description: A 3-node microk8s cluster for juju
+version: latest
+
+runs-on:
+  - x86_64
+  - arm64
+  - s390x
+
+instances:
+  microk8s-ha:
+    image: 22.04
+    limits:
+      min-cpu: 8
+      min-mem: 16G
+      min-disk: 100G
+    timeout: 1800
+    cloud-init:
+      vendor-data: |
+        package_update: true
+
+        packages:
+        - jq
+        - kitty-terminfo
+
+        snap:
+          commands:
+          - snap install lxd --channel=5.21/stable
+          - snap install juju --channel=3.4/stable
+          - snap install multipass --channel=latest/stable
+          - snap refresh
+
+        write_files:
+        - path: "/run/microk8s-cloud-init.yaml"
+          permissions: "0666"
+          content: |
+            #cloud-config
+            package_update: true
+
+            packages:
+            - jq
+            - kitty-terminfo
+
+            snap:
+              commands:
+              - snap install microk8s --channel=1.29-strict/stable
+              - snap alias microk8s.kubectl kubectl
+              - snap alias microk8s.kubectl k
+              - snap refresh
+
+            runcmd:
+            - |
+              # disable swap
+              sysctl -w vm.swappiness=0
+              echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
+              swapoff -a
+
+              # Disable IPv6
+              echo "net.ipv6.conf.all.disable_ipv6=1" | tee -a /etc/sysctl.conf
+              echo "net.ipv6.conf.default.disable_ipv6=1" | tee -a /etc/sysctl.conf
+              echo "net.ipv6.conf.lo.disable_ipv6=1" | tee -a /etc/sysctl.conf
+              sysctl -p
+
+              # disable unnecessary services
+              systemctl disable man-db.timer man-db.service --now
+              systemctl disable apport.service apport-autoreport.service  --now
+              systemctl disable apt-daily.service apt-daily.timer --now
+              systemctl disable apt-daily-upgrade.service apt-daily-upgrade.timer --now
+              systemctl disable unattended-upgrades.service --now
+              systemctl disable motd-news.service motd-news.timer --now
+              systemctl disable bluetooth.target --now
+              systemctl disable ua-timer.timer ua-timer.service --now
+              systemctl disable systemd-tmpfiles-clean.timer --now
+
+            - |
+              set -eux
+
+              # Setup microk8s
+              microk8s status --wait-ready
+
+              # The dns addon will restart the api server so you may see a blip in the availability
+              microk8s.enable dns
+              microk8s.kubectl rollout status deployments/coredns -n kube-system -w --timeout=600s
+
+              microk8s.enable rbac
+              microk8s.enable hostpath-storage
+              microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w --timeout=600s
+
+              # MetalLB
+              IPADDR=$(ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc')
+              microk8s enable metallb:$IPADDR-$IPADDR
+              microk8s.kubectl rollout status daemonset.apps/speaker -n metallb-system -w --timeout=600s
+
+              usermod -a -G snap_microk8s ubuntu
+
+        runcmd:
+        - DEBIAN_FRONTEND=noninteractive apt-get remove -y landscape-client landscape-common adwaita-icon-theme humanity-icon-theme
+        - DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
+        - DEBIAN_FRONTEND=noninteractive apt-get -y autoremove
+
+        - |
+          # disable swap
+          sysctl -w vm.swappiness=0
+          echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
+          swapoff -a
+
+        - |
+          # disable unnecessary services
+          systemctl disable man-db.timer man-db.service --now
+          systemctl disable apport.service apport-autoreport.service  --now
+          systemctl disable apt-daily.service apt-daily.timer --now
+          systemctl disable apt-daily-upgrade.service apt-daily-upgrade.timer --now
+          systemctl disable unattended-upgrades.service --now
+          systemctl disable motd-news.service motd-news.timer --now
+          systemctl disable bluetooth.target --now
+          systemctl disable ua-timer.timer ua-timer.service --now
+          systemctl disable systemd-tmpfiles-clean.timer --now
+
+          # Disable IPv6
+          echo "net.ipv6.conf.all.disable_ipv6=1" | tee -a /etc/sysctl.conf
+          echo "net.ipv6.conf.default.disable_ipv6=1" | tee -a /etc/sysctl.conf
+          echo "net.ipv6.conf.lo.disable_ipv6=1" | tee -a /etc/sysctl.conf
+          sysctl -p
+
+        - |
+          # Set up cluster
+          # Strictly confined snap cannot see `/run`.
+          cp /run/microk8s-cloud-init.yaml ~ubuntu/
+          sudo -u ubuntu multipass launch 22.04 --name node-0 --memory 4G --cpus 2 --disk 30G --cloud-init ~ubuntu/microk8s-cloud-init.yaml
+          sudo -u ubuntu multipass exec node-0 -- cloud-init status --wait
+          sudo -u ubuntu multipass exec node-0 -- microk8s config > ~ubuntu/node-0.kube.conf
+          chown ubuntu:ubuntu ~ubuntu/node-0.kube.conf
+
+          sudo -u ubuntu multipass launch 22.04 --name node-1 --memory 4G --cpus 2 --disk 30G --cloud-init ~ubuntu/microk8s-cloud-init.yaml
+          sudo -u ubuntu multipass exec node-1 -- cloud-init status --wait
+          sudo -u ubuntu multipass exec node-1 -- microk8s config > ~ubuntu/node-1.kube.conf
+          chown ubuntu:ubuntu ~ubuntu/node-1.kube.conf
+
+          sudo -u ubuntu multipass launch 22.04 --name node-2 --memory 4G --cpus 2 --disk 30G --cloud-init ~ubuntu/microk8s-cloud-init.yaml
+          sudo -u ubuntu multipass exec node-2 -- cloud-init status --wait
+          sudo -u ubuntu multipass exec node-2 -- microk8s config > ~ubuntu/node-2.kube.conf
+          chown ubuntu:ubuntu ~ubuntu/node-2.kube.conf
+
+          # https://unix.stackexchange.com/questions/230673/how-to-generate-a-random-string
+          TOKEN=$(tr -dc a-f0-9 </dev/urandom | head -c 32)
+          URL=$(sudo -u ubuntu multipass exec node-0 -- sudo microk8s add-node --token $TOKEN --format json | jq -r '.urls[0]')
+          sudo -u ubuntu multipass exec node-1 -- sudo microk8s join $URL
+
+          TOKEN=$(tr -dc a-f0-9 </dev/urandom | head -c 32)
+          URL=$(sudo -u ubuntu multipass exec node-0 -- sudo microk8s add-node --token $TOKEN --format json | jq -r '.urls[0]')
+          sudo -u ubuntu multipass exec node-2 -- sudo microk8s join $URL
+
+          # Make sure everything is ok
+          sudo -u ubuntu multipass exec node-0 microk8s kubectl get node
+
+        - |
+          # Setup juju
+          sudo -u ubuntu mkdir -p /home/ubuntu/.local/share/juju
+
+          # Gotta sleep a bit before add-k8s, otherwise:
+          # ERROR making juju admin credentials in cluster: ensuring cluster role "juju-credential-fabcd43f" in namespace "kube-system": Get "https://10.25.94.86:16443/apis/rbac.authorization.k8s.io/v1/clusterroles/juju-credential-fabcd43f": net/http: TLS handshake timeout
+          sleep 30
+          sudo -u ubuntu sh -c 'KUBECONFIG="/home/ubuntu/node-0.kube.conf" juju add-k8s microk8s-cluster --client'
+          sudo -u ubuntu juju bootstrap microk8s-cluster k8s
+          sudo -u ubuntu juju add-model welcome-k8s
+
+        final_message: "The system is finally up, after $UPTIME seconds"
+
+health-check: |
+  set -e
+
+  multipass exec node-0 -- microk8s kubectl get nodes
+  multipass exec node-0 -- microk8s status
