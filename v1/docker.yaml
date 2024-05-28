@@ -1,5 +1,5 @@
 description: A Docker environment with Portainer and related tools
-version: 0.4
+version: 0.5
 
 runs-on:
 - arm
