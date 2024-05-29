@@ -56,7 +56,7 @@ you would need to override the systemd service with the following setting:
 
 ```conf
 [Service]
-Environment="MULTIPASS_BLUEPRINTS_URL=https://github.com/canonical/multipass-blueprints/archive/refs/heads/<BRANCH_NAME>.zip"
+Environment="MULTIPASS_BLUEPRINTS_URL=https://github.com/<REPO_OWNER>/multipass-blueprints/archive/refs/heads/<BRANCH_NAME>.zip"
 ```
 
 This can be done by using the `systemctl edit` utility to open the file and add the two lines mentioned above into the uncommented blank section:
