@@ -56,10 +56,10 @@ you would need to override the systemd service with the following setting:
 
 ```conf
 [Service]
-Environment="MULTIPASS_BLUEPRINTS_URL=https://github.com/USERNAME/multipass-blueprints/archive/refs/heads/BRANCH_NAME.zip"
+Environment="MULTIPASS_BLUEPRINTS_URL=https://github.com/canonical/multipass-blueprints/archive/refs/heads/<BRANCH_NAME>.zip"
 ```
 
-This can be done by using the `systemctl edit` utility:
+This can be done by using the `systemctl edit` utility to open the file and add the two lines mentioned above into the uncommented blank section:
 
 ```shell
 sudo systemctl edit snap.multipass.multipassd.service
