@@ -48,9 +48,10 @@ instances:
 
         snap:
           commands:
-          # Juju 3.1 is supported until 25.04
-          - snap install juju --channel=3.1/stable
-          - snap install microk8s --channel=1.28-strict/stable
+          # Juju 3.5 is supported until Jan 2025
+          # https://juju.is/docs/juju/roadmap
+          - snap install juju --channel=3.5/stable
+          - snap install microk8s --channel=1.29-strict/stable
           - snap alias microk8s.kubectl kubectl
           - snap alias microk8s.kubectl k
           - snap install --classic charmcraft
@@ -67,7 +68,7 @@ instances:
         - |
           # Install tox from pypi (v4) instead of apt (v3)
           sudo -u ubuntu pip install tox
-          
+
         - |
           # disable swap
           sysctl -w vm.swappiness=0
@@ -152,7 +153,7 @@ instances:
 
           # We need to connect the dot-local-share-juju interface with jhack
           sudo snap connect jhack:dot-local-share-juju snapd
-          sudo snap connect jhack:ssh-read snapd        
+          sudo snap connect jhack:ssh-read snapd
 
         final_message: "The system is finally up, after $UPTIME seconds"
 
