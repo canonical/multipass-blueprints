@@ -18,9 +18,7 @@ instances:
         apt:
           sources:
             ros2:
-              source: "deb http://packages.ros.org/ros2-testing/ubuntu $RELEASE main"
-              # Use this once released
-              # source: "deb http://packages.ros.org/ros2/ubuntu $RELEASE main"
+              source: "deb http://packages.ros.org/ros2/ubuntu $RELEASE main"
               keyid: C1CF 6E31 E6BA DE88 68B1 72B4 F42E D6FB AB17 C654
 
         package_upgrade: true
