@@ -11,7 +11,7 @@
 # To only test the cloud init portion of this blueprint:
 #
 #   yq '.instances."charm-dev"."cloud-init"."vendor-data"' v1/charm-dev.yaml > charm-dev-cloud-init.yaml
-#   multipass launch --cloud-init ./charm-dev-cloud-init.yaml --name test --memory 7G --cpus 2 --disk 30G
+#   multipass launch noble --cloud-init ./charm-dev-cloud-init.yaml --name test --memory 16G --cpus 8 --disk 100G
 
 description: A development and testing environment for charmers
 version: latest
@@ -23,7 +23,7 @@ runs-on:
 
 instances:
   charm-dev:
-    image: 22.04
+    image: 24.04
     limits:
       min-cpu: 2
       min-mem: 4G
@@ -48,10 +48,10 @@ instances:
 
         snap:
           commands:
-          # Juju 3.5 is supported until Jan 2025
+          # Juju 3.6 is an LTS. Install beta to help the juju team with testing.
           # https://juju.is/docs/juju/roadmap
-          - snap install juju --channel=3.5/stable
-          - snap install microk8s --channel=1.29-strict/stable
+          - snap install juju --channel=3.6/beta
+          - snap install microk8s --channel=1.30-strict/stable
           - snap alias microk8s.kubectl kubectl
           - snap alias microk8s.kubectl k
           - snap install --classic charmcraft
