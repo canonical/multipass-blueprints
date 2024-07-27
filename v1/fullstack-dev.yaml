@@ -157,6 +157,7 @@ instances:
 
           # Deploy PostgreSQL charm
           sudo -u ubuntu juju deploy postgresql-k8s --trust
+          
 
         final_message: "The system is finally up, after $UPTIME seconds"
 
