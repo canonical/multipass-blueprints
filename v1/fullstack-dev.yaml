@@ -155,10 +155,6 @@ instances:
           sudo snap connect jhack:dot-local-share-juju snapd
           sudo snap connect jhack:ssh-read snapd
 
-          # Deploy PostgreSQL charm
-          sudo -u ubuntu juju deploy postgresql-k8s --trust
-          
-
         final_message: "The system is finally up, after $UPTIME seconds"
 
 health-check: |
