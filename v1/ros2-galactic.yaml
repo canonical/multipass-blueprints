@@ -37,7 +37,7 @@ instances:
 
             # install ros-galactic-desktop 
             sudo apt update && sudo apt upgrade
-            sudo apt install ros-galactic-desktop
+            sudo apt install ros-galactic-desktop -y
             source /opt/ros/galactic/setup.bash
         final_message: "The ROS 2 Galactic environment is up, after $UPTIME seconds."
 
