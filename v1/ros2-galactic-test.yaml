@@ -6,7 +6,7 @@ runs-on:
 - x86_64
 
 instances:
-  ros2-galactic:
+  ros2-galactic-test:
     image: 20.04
     limits:
       min-cpu: 2
