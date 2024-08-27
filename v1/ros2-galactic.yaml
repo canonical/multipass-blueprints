@@ -6,7 +6,7 @@ runs-on:
 - x86_64
 
 instances:
-  ros2-galactic-test:
+  ros2-galactic:
     image: 20.04
     limits:
       min-cpu: 2
@@ -35,8 +35,10 @@ instances:
             #add the ROS 2 GPG key with apt
             echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
+            # install ros-galactic-desktop 
             sudo apt update && sudo apt upgrade
-            sudo apt install ros-galactic-ros-core -y
+            sudo apt install ros-galactic-desktop
+            source /opt/ros/galactic/setup.bash
         final_message: "The ROS 2 Galactic environment is up, after $UPTIME seconds."
 
 health-check: |
