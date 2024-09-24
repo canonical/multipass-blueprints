@@ -16,9 +16,7 @@ instances:
       vendor-data: |
         snap:
           commands:
-          - snap install --classic --channel=2.9/stable juju
-          - snap install amc
-          - snap install --classic anbox-cloud-appliance
+          - snap install anbox-cloud-appliance
 
         runcmd:
         - |
