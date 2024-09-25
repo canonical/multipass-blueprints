@@ -16,14 +16,12 @@ instances:
       vendor-data: |
         snap:
           commands:
-          - snap install --classic --channel=2.9/stable juju
-          - snap install amc
-          - snap install --classic anbox-cloud-appliance
+          - snap install anbox-cloud-appliance
 
         runcmd:
         - |
-          # We're done if ashmem and binder are available
-          modprobe ashmem_linux && modprobe binder_linux && exit 0
+          # We're done if binder is available
+          modprobe binder_linux && exit 0
 
           # else
           apt-get update
@@ -33,4 +31,4 @@ instances:
 
         power_state:
           mode: reboot
-          condition: "! ( modprobe ashmem_linux && modprobe binder_linux )"
+          condition: "! ( modprobe binder_linux )"
