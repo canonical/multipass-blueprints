@@ -225,7 +225,7 @@ jobs:
 
               elif [ '${{ matrix.os }}' == 'macOS' ]; then
                 PLIST_FILE="/Library/LaunchDaemons/com.canonical.multipassd.plist"
-                _install https://github.com/canonical/multipass/releases/download/v1.9.0-rc/multipass-1.9.0-rc.557+gc2561306.mac-Darwin.pkg
+                _install https://multipass.run/download/macos
 
                 # force use of the qemu driver
                 _retry 5 30 _run $MP set local.driver=qemu
