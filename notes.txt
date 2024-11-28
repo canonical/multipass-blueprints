@@ -1,0 +1,61 @@
+### Use cloud-init conf.yaml for multipass VM setup
+
+## Charm-Dev
+multipass launch --cpus 4 --memory 8G --disk 50G --name my-vm charm-dev
+
+## FullStack  (using --cloud-init to use local yaml)
+multipass launch --cpus 4 --memory 8G --disk 50G --name fullstack --cloud-init ~/dev/multipass-blueprints/v1/fullstack-dev.yaml
+
+
+#############
+## TODO
+#############
+
+
+###	Deployed on k8s
+-apollo server graphql
+-apollo router
+
+#######################
+
+
+
+postgres password: zx0HkZCdtnt5fEL6
+replication password: pARMByIYyYbLNwCq
+
+
+
+juju ssh --container postgresql postgresql-k8s/leader bash
+
+################
+postgres IP: 
+10.152.183.69
+################
+
+### View database list using password of currently logged in
+psql --host=10.152.183.69 --username=operator --password --list
+
+### Output
+root@postgresql-k8s-0:/# psql --host=10.152.183.69 --username=operator --password --list
+Password: 
+                               List of databases
+   Name    |  Owner   | Encoding | Collate |  Ctype  |    Access privileges     
+-----------+----------+----------+---------+---------+--------------------------
+ postgres  | operator | UTF8     | C       | C.UTF-8 | operator=CTc/operator   +
+           |          |          |         |         | backup=CTc/operator     +
+           |          |          |         |         | replication=CTc/operator+
+           |          |          |         |         | rewind=CTc/operator     +
+           |          |          |         |         | monitoring=CTc/operator +
+           |          |          |         |         | admin=c/operator
+ template0 | operator | UTF8     | C       | C.UTF-8 | =c/operator             +
+           |          |          |         |         | operator=CTc/operator
+ template1 | operator | UTF8     | C       | C.UTF-8 | =c/operator             +
+           |          |          |         |         | operator=CTc/operator
+(3 rows)
+
+
+### Execute commands against databse
+psql --host=10.152.183.69 --username=operator --password postgres
+
+[Service]
+Environment="MULTIPASS_BLUEPRINTS_URL=https://github.com/SolutionsExcite/multipass-blueprints/archive/refs/heads/develop-v0.01.zip"
