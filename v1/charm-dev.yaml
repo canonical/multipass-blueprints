@@ -45,19 +45,21 @@ instances:
         - ripgrep
         - gnome-keyring
         - kitty-terminfo
+        - just
 
         snap:
           commands:
           # Juju 3.6 is an LTS.
           # https://juju.is/docs/juju/roadmap
-          - snap install juju --channel=3.5/stable
-          - snap install microk8s --channel=1.30-strict/stable
+          - snap install juju --channel=3.6/stable
+          - snap install microk8s --channel=1.31-strict/stable
           - snap alias microk8s.kubectl kubectl
           - snap alias microk8s.kubectl k
           - snap install --classic charmcraft
           - snap install --classic rockcraft
           - snap install jhack --channel=latest/stable
           - snap install yq
+          - snap install astral-uv --classic
           - snap refresh
 
         write_files:
