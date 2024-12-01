@@ -80,7 +80,6 @@ instances:
         runcmd:
         - DEBIAN_FRONTEND=noninteractive apt remove -y landscape-client landscape-common adwaita-icon-theme humanity-icon-theme
         - DEBIAN_FRONTEND=noninteractive apt -y upgrade
-        - DEBIAN_FRONTEND=noninteractive apt -y autoremove
 
         - |
           # Install tox from pypi (v4) instead of apt (v3)
