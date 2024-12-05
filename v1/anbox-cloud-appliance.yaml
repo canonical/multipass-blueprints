@@ -11,7 +11,7 @@ instances:
       min-cpu: 4
       min-mem: 4G
       min-disk: 50G
-    timeout: 900
+    timeout: 1800
     cloud-init:
       vendor-data: |
         snap:
